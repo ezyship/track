@@ -709,6 +709,7 @@
 
         <button class="btn btn-pdf" onclick="generatePDF()">Download PDF</button>
         <button class="btn btn-print" onclick="printAddresses()">&#128424; Print</button>
+        <button class="btn btn-default" onclick="openQuickBill(null)" style="background: rgba(16, 185, 129, 0.15); color: #a7f3d0; border-color: rgba(16, 185, 129, 0.35);">💵 Quick Bill</button>
 
     </div>
 
@@ -950,6 +951,7 @@
         var qbCustomers = {};
         var qbSettings = { invoicePrefix: "INV-2026-", nextInvoiceNumber: 1 };
         var qbActiveBox = null;
+        var qbActiveGst = '';
 
         // Fetch customers list and settings from Firebase Realtime Database
         if (typeof firebaseDb !== 'undefined' && firebaseDb) {
@@ -968,43 +970,48 @@
         }
 
         function openQuickBill(btn) {
-            qbActiveBox = btn.closest('.addr-box').querySelector('.editable');
-            if (!qbActiveBox) {
-                showQbToast("Error: Address card content not found.", "error");
-                return;
-            }
+            var phone = '';
+            var name = '';
+            var address = '';
+            var gst = '';
 
-            var plainText = qbActiveBox.innerText.trim();
-            var textLines = plainText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
-            var name = textLines.length > 0 ? textLines[0] : '';
-            
-            var phoneMatch = plainText.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
-            var phone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
-            
-            var gstMatch = plainText.match(/\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/i);
-            var gst = gstMatch ? gstMatch[0].toUpperCase() : '';
-            
-            // Construct address by stripping name, phone, and GSTIN
-            var addrParts = [];
-            for (var i = 1; i < textLines.length; i++) {
-                var line = textLines[i];
-                if (phone && (line.includes(phone) || (phoneMatch && line.includes(phoneMatch[0])))) {
-                    continue;
+            if (btn) {
+                qbActiveBox = btn.closest('.addr-box').querySelector('.editable');
+                if (qbActiveBox) {
+                    var plainText = qbActiveBox.innerText.trim();
+                    var textLines = plainText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+                    name = textLines.length > 0 ? textLines[0] : '';
+                    
+                    var phoneMatch = plainText.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
+                    phone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
+                    
+                    var gstMatch = plainText.match(/\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/i);
+                    gst = gstMatch ? gstMatch[0].toUpperCase() : '';
+                    
+                    var addrParts = [];
+                    for (var i = 1; i < textLines.length; i++) {
+                        var line = textLines[i];
+                        if (phone && (line.includes(phone) || (phoneMatch && line.includes(phoneMatch[0])))) {
+                            continue;
+                        }
+                        if (gst && (line.includes(gst) || (gstMatch && line.includes(gstMatch[0])))) {
+                            continue;
+                        }
+                        addrParts.push(line);
+                    }
+                    address = addrParts.join(', ');
                 }
-                if (gst && (line.includes(gst) || (gstMatch && line.includes(gstMatch[0])))) {
-                    continue;
-                }
-                addrParts.push(line);
+            } else {
+                qbActiveBox = null;
             }
-            var address = addrParts.join(', ');
 
             // Populate form
             document.getElementById('qbCustomerPhone').value = phone;
             document.getElementById('qbCustomerName').value = name;
             document.getElementById('qbCustomerAddress').value = address;
-            document.getElementById('qbCustomerGst').value = gst;
+            qbActiveGst = gst;
+            document.getElementById('qbProductQty').value = '1';
             document.getElementById('qbOrderAmount').value = '';
-            document.getElementById('qbGstToggle').checked = false;
             document.getElementById('qbPaymentStatus').value = 'unpaid';
             document.getElementById('qbAmountPaid').value = '0';
             document.getElementById('qbNotes').value = '';
@@ -1029,7 +1036,7 @@
                 var c = qbCustomers[phone];
                 if (c.name) document.getElementById('qbCustomerName').value = c.name;
                 if (c.address) document.getElementById('qbCustomerAddress').value = c.address;
-                if (c.gst) document.getElementById('qbCustomerGst').value = c.gst;
+                if (c.gst) qbActiveGst = c.gst;
             } else {
                 badge.textContent = "New Customer";
                 badge.className = "qb-badge new";
@@ -1071,7 +1078,49 @@
                     document.getElementById('qbCustomerPhone').value = phoneKey;
                     document.getElementById('qbCustomerName').value = cust.name;
                     document.getElementById('qbCustomerAddress').value = cust.address || '';
-                    document.getElementById('qbCustomerGst').value = cust.gst || '';
+                    qbActiveGst = cust.gst || '';
+                    updateQbCustomerBadge(phoneKey);
+                    suggestions.style.display = 'none';
+                    showQbToast("Customer auto-filled.", "info");
+                };
+                suggestions.appendChild(div);
+            });
+            suggestions.style.display = 'block';
+        }
+
+        function handleQbNameInput(input) {
+            var val = input.value.trim();
+            var suggestions = document.getElementById('qb-name-suggestions');
+            suggestions.innerHTML = '';
+            
+            if (val.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            var matches = Object.entries(qbCustomers).filter(function(entry) {
+                var phoneKey = entry[0];
+                var cust = entry[1];
+                var cName = cust.name ? cust.name.toLowerCase() : '';
+                return cName.includes(val.toLowerCase()) || phoneKey.includes(val);
+            });
+
+            if (matches.length === 0) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            matches.forEach(function(entry) {
+                var phoneKey = entry[0];
+                var cust = entry[1];
+                var div = document.createElement('div');
+                div.className = 'qb-suggestion-item';
+                div.innerHTML = '<strong>' + cust.name + '</strong><span>📞 ' + phoneKey + '</span>';
+                div.onclick = function() {
+                    document.getElementById('qbCustomerPhone').value = phoneKey;
+                    document.getElementById('qbCustomerName').value = cust.name;
+                    document.getElementById('qbCustomerAddress').value = cust.address || '';
+                    qbActiveGst = cust.gst || '';
                     updateQbCustomerBadge(phoneKey);
                     suggestions.style.display = 'none';
                     showQbToast("Customer auto-filled.", "info");
@@ -1087,14 +1136,14 @@
                 var suggestions = document.getElementById('qb-phone-suggestions');
                 if (suggestions) suggestions.style.display = 'none';
             }
+            if (e.target.id !== 'qbCustomerName') {
+                var suggestions = document.getElementById('qb-name-suggestions');
+                if (suggestions) suggestions.style.display = 'none';
+            }
         });
 
         function qbRecalc() {
-            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
-            var isGst = document.getElementById('qbGstToggle').checked;
-            var gst = isGst ? (base * 0.18) : 0;
-            var total = base + gst;
-            
+            var total = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
             var status = document.getElementById('qbPaymentStatus').value;
             var paidInput = document.getElementById('qbAmountPaid');
             
@@ -1107,20 +1156,14 @@
             var paid = parseFloat(paidInput.value) || 0;
             var pending = total - paid;
             
-            document.getElementById('qb-lbl-base').textContent = base.toFixed(2);
-            document.getElementById('qb-lbl-gst').textContent = gst.toFixed(2);
             document.getElementById('qb-lbl-paid').textContent = paid.toFixed(2);
             document.getElementById('qb-lbl-total').textContent = total.toFixed(2);
             document.getElementById('qb-lbl-pending').textContent = Math.max(0, pending).toFixed(2);
-            
-            document.getElementById('qb-gst-row').style.display = isGst ? 'flex' : 'none';
         }
 
         function qbStatusChange() {
             var status = document.getElementById('qbPaymentStatus').value;
-            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
-            var isGst = document.getElementById('qbGstToggle').checked;
-            var total = base + (isGst ? (base * 0.18) : 0);
+            var total = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
             var paidInput = document.getElementById('qbAmountPaid');
             
             if (status === 'paid') {
@@ -1132,9 +1175,7 @@
         }
 
         function qbAmountPaidInput() {
-            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
-            var isGst = document.getElementById('qbGstToggle').checked;
-            var total = base + (isGst ? (base * 0.18) : 0);
+            var total = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
             var paid = parseFloat(document.getElementById('qbAmountPaid').value) || 0;
             
             if (paid < 0) paid = 0;
@@ -1158,9 +1199,9 @@
             var phone = document.getElementById('qbCustomerPhone').value.trim();
             var name = document.getElementById('qbCustomerName').value.trim();
             var address = document.getElementById('qbCustomerAddress').value.trim();
-            var gst = document.getElementById('qbCustomerGst').value.trim().toUpperCase();
-            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
-            var isGst = document.getElementById('qbGstToggle').checked;
+            var gst = qbActiveGst.trim().toUpperCase();
+            var total = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
+            var qty = parseFloat(document.getElementById('qbProductQty').value) || 1;
             var status = document.getElementById('qbPaymentStatus').value;
             var paid = parseFloat(document.getElementById('qbAmountPaid').value) || 0;
             var notes = document.getElementById('qbNotes').value.trim();
@@ -1173,24 +1214,29 @@
                 showQbToast("Please enter a valid 10-digit Phone Number.", "error");
                 return;
             }
-            if (isNaN(base) || base <= 0) {
-                showQbToast("Please enter a valid Order Amount.", "error");
+            if (isNaN(total) || total <= 0) {
+                showQbToast("Please enter a valid Total Amount.", "error");
+                return;
+            }
+            if (isNaN(qty) || qty <= 0) {
+                showQbToast("Please enter a valid Quantity.", "error");
                 return;
             }
 
-            var subtotal = base;
-            var gstAmount = isGst ? (base * 0.18) : 0;
-            var grandTotal = base + gstAmount;
+            var subtotal = total;
+            var gstAmount = 0;
+            var grandTotal = total;
             var amountPending = grandTotal - paid;
+            var rate = total / qty;
 
             var nextNoFormatted = String(qbSettings.nextInvoiceNumber || 1).padStart(3, '0');
             var invoiceNo = (qbSettings.invoicePrefix || 'INV-2026-') + nextNoFormatted;
 
             var items = [{
-                productName: "Order Amount",
-                quantity: 1,
-                rate: base,
-                total: base
+                productName: "Order Item",
+                quantity: qty,
+                rate: rate,
+                total: total
             }];
 
             var billPayload = {
@@ -1204,9 +1250,9 @@
                 paymentTimestamp: status === 'paid' ? new Date().toISOString() : null,
                 items: items,
                 subtotal: subtotal,
-                gstType: isGst ? 'gst' : 'non-gst',
-                gstPercent: isGst ? 18 : 0,
-                gstAmount: gstAmount,
+                gstType: 'non-gst',
+                gstPercent: 0,
+                gstAmount: 0,
                 extraCharges: 0,
                 discount: 0,
                 grandTotal: grandTotal,
@@ -1308,7 +1354,8 @@
                     </div>
                     <div class="qb-form-group">
                         <label for="qbCustomerName">Customer Name</label>
-                        <input type="text" id="qbCustomerName" placeholder="Customer Name">
+                        <input type="text" id="qbCustomerName" placeholder="Customer Name" oninput="handleQbNameInput(this)" autocomplete="off">
+                        <div class="qb-suggestions-box" id="qb-name-suggestions"></div>
                     </div>
                 </div>
 
@@ -1319,21 +1366,16 @@
 
                 <div class="qb-form-row">
                     <div class="qb-form-group">
-                        <label for="qbCustomerGst">GSTIN (Optional)</label>
-                        <input type="text" id="qbCustomerGst" placeholder="15-digit GSTIN">
+                        <label for="qbProductQty">Product Quantity</label>
+                        <input type="number" id="qbProductQty" value="1" min="1" placeholder="Quantity">
                     </div>
                     <div class="qb-form-group">
-                        <label for="qbOrderAmount">Order Amount (₹)</label>
-                        <input type="number" id="qbOrderAmount" placeholder="Enter amount" min="0" oninput="qbRecalc()">
+                        <label for="qbOrderAmount">Total Amount (₹)</label>
+                        <input type="number" id="qbOrderAmount" placeholder="Enter total amount" min="0" oninput="qbRecalc()">
                     </div>
                 </div>
 
                 <div class="qb-form-row">
-                    <div class="qb-form-group" style="justify-content: center; margin-top: 10px;">
-                        <label class="qb-checkbox-label">
-                            <input type="checkbox" id="qbGstToggle" onchange="qbRecalc()"> Include GST (18%)
-                        </label>
-                    </div>
                     <div class="qb-form-group">
                         <label for="qbPaymentStatus">Payment Status</label>
                         <select id="qbPaymentStatus" onchange="qbStatusChange()">
@@ -1342,35 +1384,29 @@
                             <option value="partial">Partial Paid</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="qb-form-row">
                     <div class="qb-form-group">
                         <label for="qbAmountPaid">Amount Paid (₹)</label>
                         <input type="number" id="qbAmountPaid" placeholder="Paid amount" min="0" oninput="qbAmountPaidInput()">
                     </div>
-                    <div class="qb-form-group">
-                        <label for="qbNotes">Notes</label>
-                        <input type="text" id="qbNotes" placeholder="Additional details / reference">
-                    </div>
+                </div>
+
+                <div class="qb-form-group">
+                    <label for="qbNotes">Notes</label>
+                    <input type="text" id="qbNotes" placeholder="Additional details / reference">
                 </div>
 
                 <div class="qb-calc-summary">
                     <div class="qb-calc-row">
-                        <span>Base Amount</span>
-                        <span>₹<span id="qb-lbl-base">0.00</span></span>
-                    </div>
-                    <div class="qb-calc-row" id="qb-gst-row" style="display: none;">
-                        <span>GST (18%)</span>
-                        <span>₹<span id="qb-lbl-gst">0.00</span></span>
+                        <span>Total Amount</span>
+                        <span>₹<span id="qb-lbl-total">0.00</span></span>
                     </div>
                     <div class="qb-calc-row">
                         <span>Paid Amount</span>
                         <span>₹<span id="qb-lbl-paid">0.00</span></span>
                     </div>
                     <div class="qb-calc-row total">
-                        <span>Grand Total / Outstanding</span>
-                        <span>₹<span id="qb-lbl-total">0.00</span> / ₹<span id="qb-lbl-pending">0.00</span></span>
+                        <span>Outstanding Balance</span>
+                        <span>₹<span id="qb-lbl-pending">0.00</span></span>
                     </div>
                 </div>
             </div>
