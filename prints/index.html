@@ -294,6 +294,273 @@
             border-color: rgba(239, 68, 68, 0.4);
         }
 
+        .bill-btn {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 5px;
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            background: rgba(16, 185, 129, 0.12);
+            color: #a7f3d0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bill-btn:hover {
+            background: rgba(16, 185, 129, 0.28);
+        }
+
+        /* Quick Bill Modal & Toast Styles */
+        .qb-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .qb-modal.open {
+            display: flex;
+        }
+
+        .qb-modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            animation: qbFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes qbFadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .qb-modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .qb-modal-header h3 {
+            font-size: 1.25rem;
+            color: #f1f5f9;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qb-modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .qb-modal-close:hover {
+            color: #ffffff;
+        }
+
+        .qb-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .qb-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .qb-form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .qb-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .qb-form-group label {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .qb-form-group input,
+        .qb-form-group select,
+        .qb-form-group textarea {
+            padding: 10px 14px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.92rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .qb-form-group input:focus,
+        .qb-form-group select:focus,
+        .qb-form-group textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .qb-suggestions-box {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            z-index: 10001;
+            max-height: 150px;
+            overflow-y: auto;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            margin-top: 2px;
+            display: none;
+        }
+
+        .qb-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .qb-suggestion-item:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .qb-suggestion-item strong {
+            display: block;
+            color: #f1f5f9;
+        }
+
+        .qb-suggestion-item span {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .qb-badge {
+            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-left: 6px;
+            display: inline-block;
+        }
+        .qb-badge.new {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .qb-badge.existing {
+            background: rgba(16, 185, 129, 0.15);
+            color: #a7f3d0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .qb-calc-summary {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.88rem;
+        }
+
+        .qb-calc-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            color: #94a3b8;
+        }
+
+        .qb-calc-row.total {
+            margin-top: 6px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            padding-top: 6px;
+            font-weight: 700;
+            color: #f1f5f9;
+            font-size: 1rem;
+        }
+
+        .qb-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #f1f5f9;
+            user-select: none;
+            margin-bottom: 16px;
+        }
+
+        .qb-checkbox-label input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        #qbToast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+            z-index: 11000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        #qbToast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #qbToast.success { background: #10b981; }
+        #qbToast.error { background: #ef4444; }
+        #qbToast.info { background: #3b82f6; }
+
         .editable {
             width: 100%;
             min-height: 110px;
@@ -463,6 +730,7 @@
                 '<div class="box-topbar">' +
                 '<div class="box-actions">' +
                 '<button class="lock-btn" onclick="toggleLock(this)">Lock</button>' +
+                '<button class="bill-btn" onclick="openQuickBill(this)">💵 Bill</button>' +
                 '<button class="del-btn"  onclick="removeBox(this)">X</button>' +
                 '</div>' +
                 '</div>' +
@@ -675,7 +943,446 @@
 
         // Start with one box
         addBox();
+
+        /* ============================================================
+           QUICK BILLING LOGIC
+        ============================================================ */
+        var qbCustomers = {};
+        var qbSettings = { invoicePrefix: "INV-2026-", nextInvoiceNumber: 1 };
+        var qbActiveBox = null;
+
+        // Fetch customers list and settings from Firebase Realtime Database
+        if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+            firebaseDb.ref('customers').on('value', function(snap) {
+                if (snap.exists()) {
+                    qbCustomers = snap.val();
+                } else {
+                    qbCustomers = {};
+                }
+            });
+            firebaseDb.ref('billingSettings').on('value', function(snap) {
+                if (snap.exists()) {
+                    qbSettings = snap.val();
+                }
+            });
+        }
+
+        function openQuickBill(btn) {
+            qbActiveBox = btn.closest('.addr-box').querySelector('.editable');
+            if (!qbActiveBox) {
+                showQbToast("Error: Address card content not found.", "error");
+                return;
+            }
+
+            var plainText = qbActiveBox.innerText.trim();
+            var textLines = plainText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+            var name = textLines.length > 0 ? textLines[0] : '';
+            
+            var phoneMatch = plainText.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
+            var phone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
+            
+            var gstMatch = plainText.match(/\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/i);
+            var gst = gstMatch ? gstMatch[0].toUpperCase() : '';
+            
+            // Construct address by stripping name, phone, and GSTIN
+            var addrParts = [];
+            for (var i = 1; i < textLines.length; i++) {
+                var line = textLines[i];
+                if (phone && (line.includes(phone) || (phoneMatch && line.includes(phoneMatch[0])))) {
+                    continue;
+                }
+                if (gst && (line.includes(gst) || (gstMatch && line.includes(gstMatch[0])))) {
+                    continue;
+                }
+                addrParts.push(line);
+            }
+            var address = addrParts.join(', ');
+
+            // Populate form
+            document.getElementById('qbCustomerPhone').value = phone;
+            document.getElementById('qbCustomerName').value = name;
+            document.getElementById('qbCustomerAddress').value = address;
+            document.getElementById('qbCustomerGst').value = gst;
+            document.getElementById('qbOrderAmount').value = '';
+            document.getElementById('qbGstToggle').checked = false;
+            document.getElementById('qbPaymentStatus').value = 'unpaid';
+            document.getElementById('qbAmountPaid').value = '0';
+            document.getElementById('qbNotes').value = '';
+
+            updateQbCustomerBadge(phone);
+            qbRecalc();
+
+            document.getElementById('quickBillModal').classList.add('open');
+        }
+
+        function closeQuickBill() {
+            document.getElementById('quickBillModal').classList.remove('open');
+            qbActiveBox = null;
+        }
+
+        function updateQbCustomerBadge(phone) {
+            var badge = document.getElementById('qb-customer-badge');
+            if (phone && qbCustomers[phone]) {
+                badge.textContent = "Existing Customer";
+                badge.className = "qb-badge existing";
+                
+                var c = qbCustomers[phone];
+                if (c.name) document.getElementById('qbCustomerName').value = c.name;
+                if (c.address) document.getElementById('qbCustomerAddress').value = c.address;
+                if (c.gst) document.getElementById('qbCustomerGst').value = c.gst;
+            } else {
+                badge.textContent = "New Customer";
+                badge.className = "qb-badge new";
+            }
+        }
+
+        function handleQbPhoneInput(input) {
+            var val = input.value.replace(/\D/g, '');
+            input.value = val;
+            
+            updateQbCustomerBadge(val);
+            
+            var suggestions = document.getElementById('qb-phone-suggestions');
+            suggestions.innerHTML = '';
+            
+            if (val.length < 3) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            var matches = Object.entries(qbCustomers).filter(function(entry) {
+                var phoneKey = entry[0];
+                var cust = entry[1];
+                return phoneKey.includes(val) || (cust.name && cust.name.toLowerCase().includes(val.toLowerCase()));
+            });
+
+            if (matches.length === 0) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            matches.forEach(function(entry) {
+                var phoneKey = entry[0];
+                var cust = entry[1];
+                var div = document.createElement('div');
+                div.className = 'qb-suggestion-item';
+                div.innerHTML = '<strong>' + cust.name + '</strong><span>📞 ' + phoneKey + '</span>';
+                div.onclick = function() {
+                    document.getElementById('qbCustomerPhone').value = phoneKey;
+                    document.getElementById('qbCustomerName').value = cust.name;
+                    document.getElementById('qbCustomerAddress').value = cust.address || '';
+                    document.getElementById('qbCustomerGst').value = cust.gst || '';
+                    updateQbCustomerBadge(phoneKey);
+                    suggestions.style.display = 'none';
+                    showQbToast("Customer auto-filled.", "info");
+                };
+                suggestions.appendChild(div);
+            });
+            suggestions.style.display = 'block';
+        }
+
+        // Dismiss autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'qbCustomerPhone') {
+                var suggestions = document.getElementById('qb-phone-suggestions');
+                if (suggestions) suggestions.style.display = 'none';
+            }
+        });
+
+        function qbRecalc() {
+            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
+            var isGst = document.getElementById('qbGstToggle').checked;
+            var gst = isGst ? (base * 0.18) : 0;
+            var total = base + gst;
+            
+            var status = document.getElementById('qbPaymentStatus').value;
+            var paidInput = document.getElementById('qbAmountPaid');
+            
+            if (status === 'paid') {
+                paidInput.value = total.toFixed(2);
+            } else if (status === 'unpaid') {
+                paidInput.value = '0';
+            }
+            
+            var paid = parseFloat(paidInput.value) || 0;
+            var pending = total - paid;
+            
+            document.getElementById('qb-lbl-base').textContent = base.toFixed(2);
+            document.getElementById('qb-lbl-gst').textContent = gst.toFixed(2);
+            document.getElementById('qb-lbl-paid').textContent = paid.toFixed(2);
+            document.getElementById('qb-lbl-total').textContent = total.toFixed(2);
+            document.getElementById('qb-lbl-pending').textContent = Math.max(0, pending).toFixed(2);
+            
+            document.getElementById('qb-gst-row').style.display = isGst ? 'flex' : 'none';
+        }
+
+        function qbStatusChange() {
+            var status = document.getElementById('qbPaymentStatus').value;
+            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
+            var isGst = document.getElementById('qbGstToggle').checked;
+            var total = base + (isGst ? (base * 0.18) : 0);
+            var paidInput = document.getElementById('qbAmountPaid');
+            
+            if (status === 'paid') {
+                paidInput.value = total.toFixed(2);
+            } else if (status === 'unpaid') {
+                paidInput.value = '0';
+            }
+            qbRecalc();
+        }
+
+        function qbAmountPaidInput() {
+            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
+            var isGst = document.getElementById('qbGstToggle').checked;
+            var total = base + (isGst ? (base * 0.18) : 0);
+            var paid = parseFloat(document.getElementById('qbAmountPaid').value) || 0;
+            
+            if (paid < 0) paid = 0;
+            if (paid > total) {
+                paid = total;
+                document.getElementById('qbAmountPaid').value = total.toFixed(2);
+            }
+            
+            var dropdown = document.getElementById('qbPaymentStatus');
+            if (paid === 0) {
+                dropdown.value = 'unpaid';
+            } else if (paid >= total) {
+                dropdown.value = 'paid';
+            } else {
+                dropdown.value = 'partial';
+            }
+            qbRecalc();
+        }
+
+        async function saveQuickBill() {
+            var phone = document.getElementById('qbCustomerPhone').value.trim();
+            var name = document.getElementById('qbCustomerName').value.trim();
+            var address = document.getElementById('qbCustomerAddress').value.trim();
+            var gst = document.getElementById('qbCustomerGst').value.trim().toUpperCase();
+            var base = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
+            var isGst = document.getElementById('qbGstToggle').checked;
+            var status = document.getElementById('qbPaymentStatus').value;
+            var paid = parseFloat(document.getElementById('qbAmountPaid').value) || 0;
+            var notes = document.getElementById('qbNotes').value.trim();
+
+            if (!phone || !name) {
+                showQbToast("Please enter Customer Name and Phone Number.", "error");
+                return;
+            }
+            if (phone.length < 10) {
+                showQbToast("Please enter a valid 10-digit Phone Number.", "error");
+                return;
+            }
+            if (isNaN(base) || base <= 0) {
+                showQbToast("Please enter a valid Order Amount.", "error");
+                return;
+            }
+
+            var subtotal = base;
+            var gstAmount = isGst ? (base * 0.18) : 0;
+            var grandTotal = base + gstAmount;
+            var amountPending = grandTotal - paid;
+
+            var nextNoFormatted = String(qbSettings.nextInvoiceNumber || 1).padStart(3, '0');
+            var invoiceNo = (qbSettings.invoicePrefix || 'INV-2026-') + nextNoFormatted;
+
+            var items = [{
+                productName: "Order Amount",
+                quantity: 1,
+                rate: base,
+                total: base
+            }];
+
+            var billPayload = {
+                invoiceNo: invoiceNo,
+                customerName: name,
+                customerPhone: phone,
+                customerAddress: address,
+                customerGst: gst,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                paymentTimestamp: status === 'paid' ? new Date().toISOString() : null,
+                items: items,
+                subtotal: subtotal,
+                gstType: isGst ? 'gst' : 'non-gst',
+                gstPercent: isGst ? 18 : 0,
+                gstAmount: gstAmount,
+                extraCharges: 0,
+                discount: 0,
+                grandTotal: grandTotal,
+                amountPaid: paid,
+                amountPending: amountPending,
+                status: status,
+                notes: notes || "Quick Bill saved from Shipping Printer"
+            };
+
+            try {
+                if (typeof firebaseDb === 'undefined' || !firebaseDb) {
+                    showQbToast("Firebase not initialized", "error");
+                    return;
+                }
+
+                // Increment invoice counter
+                await firebaseDb.ref('billingSettings/nextInvoiceNumber').transaction(function(val) {
+                    return (val || 1) + 1;
+                });
+
+                // Set bill
+                var newBillRef = firebaseDb.ref('bills').push();
+                await newBillRef.set(billPayload);
+
+                // Update customer profile
+                await firebaseDb.ref('customers/' + phone).update({
+                    name: name,
+                    phone: phone,
+                    address: address,
+                    gst: gst,
+                    lastBillingDate: billPayload.createdAt
+                });
+
+                // Recalculate totals
+                await syncCustomerLedgerTotals(phone);
+
+                showQbToast("Invoice " + invoiceNo + " saved successfully!", "success");
+                closeQuickBill();
+            } catch (err) {
+                showQbToast("Failed to save quick bill: " + err.message, "error");
+            }
+        }
+
+        async function syncCustomerLedgerTotals(phone) {
+            if (typeof firebaseDb === 'undefined' || !firebaseDb) return;
+            const billsSnap = await firebaseDb.ref('bills').orderByChild('customerPhone').equalTo(phone).once('value');
+            
+            let totalBusiness = 0;
+            let remainingBalance = 0;
+            let lastDate = 0;
+
+            if (billsSnap.exists()) {
+                Object.values(billsSnap.val()).forEach(function(bill) {
+                    if (bill.status !== 'cancelled') {
+                        totalBusiness += parseFloat(bill.grandTotal) || 0;
+                        remainingBalance += parseFloat(bill.amountPending) || 0;
+                    }
+                    const bTime = new Date(bill.createdAt).getTime();
+                    if (!isNaN(bTime) && bTime > lastDate) {
+                        lastDate = bTime;
+                    }
+                });
+            }
+
+            await firebaseDb.ref('customers/' + phone).update({
+                totalBusiness: totalBusiness,
+                remainingBalance: remainingBalance,
+                lastBillingDate: lastDate > 0 ? new Date(lastDate).toISOString() : null
+            });
+        }
+
+        function showQbToast(msg, type) {
+            var toast = document.getElementById('qbToast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.className = 'show ' + (type || 'info');
+            setTimeout(function () {
+                toast.className = '';
+            }, 3000);
+        }
+
+        // Start with one box
+        addBox();
     </script>
+
+    <!-- Quick Bill Modal -->
+    <div class="qb-modal" id="quickBillModal">
+        <div class="qb-modal-content">
+            <div class="qb-modal-header">
+                <h3>💵 Quick Bill Invoice <span id="qb-customer-badge" class="qb-badge new">New Customer</span></h3>
+                <button class="qb-modal-close" onclick="closeQuickBill()">×</button>
+            </div>
+            <div class="qb-modal-body">
+                <div class="qb-form-row">
+                    <div class="qb-form-group">
+                        <label for="qbCustomerPhone">Customer Phone</label>
+                        <input type="text" id="qbCustomerPhone" placeholder="Enter or parsed phone" oninput="handleQbPhoneInput(this)">
+                        <div class="qb-suggestions-box" id="qb-phone-suggestions"></div>
+                    </div>
+                    <div class="qb-form-group">
+                        <label for="qbCustomerName">Customer Name</label>
+                        <input type="text" id="qbCustomerName" placeholder="Customer Name">
+                    </div>
+                </div>
+
+                <div class="qb-form-group">
+                    <label for="qbCustomerAddress">Shipping Address</label>
+                    <textarea id="qbCustomerAddress" rows="2" placeholder="Shipping Address"></textarea>
+                </div>
+
+                <div class="qb-form-row">
+                    <div class="qb-form-group">
+                        <label for="qbCustomerGst">GSTIN (Optional)</label>
+                        <input type="text" id="qbCustomerGst" placeholder="15-digit GSTIN">
+                    </div>
+                    <div class="qb-form-group">
+                        <label for="qbOrderAmount">Order Amount (₹)</label>
+                        <input type="number" id="qbOrderAmount" placeholder="Enter amount" min="0" oninput="qbRecalc()">
+                    </div>
+                </div>
+
+                <div class="qb-form-row">
+                    <div class="qb-form-group" style="justify-content: center; margin-top: 10px;">
+                        <label class="qb-checkbox-label">
+                            <input type="checkbox" id="qbGstToggle" onchange="qbRecalc()"> Include GST (18%)
+                        </label>
+                    </div>
+                    <div class="qb-form-group">
+                        <label for="qbPaymentStatus">Payment Status</label>
+                        <select id="qbPaymentStatus" onchange="qbStatusChange()">
+                            <option value="paid">Paid</option>
+                            <option value="unpaid" selected>Unpaid</option>
+                            <option value="partial">Partial Paid</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="qb-form-row">
+                    <div class="qb-form-group">
+                        <label for="qbAmountPaid">Amount Paid (₹)</label>
+                        <input type="number" id="qbAmountPaid" placeholder="Paid amount" min="0" oninput="qbAmountPaidInput()">
+                    </div>
+                    <div class="qb-form-group">
+                        <label for="qbNotes">Notes</label>
+                        <input type="text" id="qbNotes" placeholder="Additional details / reference">
+                    </div>
+                </div>
+
+                <div class="qb-calc-summary">
+                    <div class="qb-calc-row">
+                        <span>Base Amount</span>
+                        <span>₹<span id="qb-lbl-base">0.00</span></span>
+                    </div>
+                    <div class="qb-calc-row" id="qb-gst-row" style="display: none;">
+                        <span>GST (18%)</span>
+                        <span>₹<span id="qb-lbl-gst">0.00</span></span>
+                    </div>
+                    <div class="qb-calc-row">
+                        <span>Paid Amount</span>
+                        <span>₹<span id="qb-lbl-paid">0.00</span></span>
+                    </div>
+                    <div class="qb-calc-row total">
+                        <span>Grand Total / Outstanding</span>
+                        <span>₹<span id="qb-lbl-total">0.00</span> / ₹<span id="qb-lbl-pending">0.00</span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="qb-modal-footer">
+                <button class="btn btn-default" onclick="closeQuickBill()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
+                <button class="btn btn-print" onclick="saveQuickBill()" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">💾 Save Bill</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Bill Toast -->
+    <div id="qbToast">Ready</div>
 </body>
 
 </html>
