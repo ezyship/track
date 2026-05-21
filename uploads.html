@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracking Photo Upload</title>
+    <style id="auth-guard-style">body { display: none !important; }</style>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>enforceAuth();</script>
     <style>
         :root {
             --primary: #6366f1;
@@ -20,12 +28,14 @@
             --ok: #10b981;
             --err: #ef4444;
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Outfit', sans-serif;
         }
+
         body {
             background: var(--bg);
             background-image: radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, .18), transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(34, 211, 238, .12), transparent 50%);
@@ -36,6 +46,7 @@
             flex-direction: column;
             align-items: center;
         }
+
         nav {
             display: flex;
             gap: 10px;
@@ -45,6 +56,7 @@
             width: 100%;
             max-width: 940px;
         }
+
         nav a {
             color: var(--pl);
             text-decoration: none;
@@ -56,17 +68,20 @@
             transition: all .2s;
             font-size: .88rem;
         }
+
         nav a:hover,
         nav a.on {
             background: var(--primary);
             color: #fff;
             border-color: var(--primary);
         }
+
         @media(max-width: 600px) {
             nav {
                 gap: 8px;
                 padding: 0 5px;
             }
+
             nav a {
                 padding: 6px 12px;
                 font-size: 0.8rem;
@@ -74,12 +89,14 @@
                 text-align: center;
             }
         }
+
         .ph {
             text-align: center;
             margin-bottom: 32px;
             width: 100%;
             max-width: 940px;
         }
+
         .ph h1 {
             font-size: clamp(1.6rem, 4vw, 2.6rem);
             font-weight: 700;
@@ -88,9 +105,11 @@
             -webkit-text-fill-color: transparent;
             margin-bottom: 6px;
         }
+
         .ph p {
             color: var(--muted);
         }
+
         .card {
             background: var(--card);
             backdrop-filter: blur(18px);
@@ -102,6 +121,7 @@
             box-shadow: 0 28px 56px rgba(0, 0, 0, .35);
             margin-bottom: 22px;
         }
+
         .stitle {
             font-size: 1rem;
             font-weight: 600;
@@ -111,26 +131,32 @@
             align-items: center;
             gap: 6px;
         }
+
         /* GitHub Config */
         .cfg-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
+
         @media(max-width:600px) {
             .cfg-grid {
                 grid-template-columns: 1fr;
             }
+
             .card {
                 padding: 18px;
             }
+
             .dz {
                 padding: 30px 15px;
             }
+
             .dz-icon {
                 font-size: 2.2rem;
             }
         }
+
         .fld label {
             display: block;
             font-size: .72rem;
@@ -140,6 +166,7 @@
             letter-spacing: .5px;
             margin-bottom: 5px;
         }
+
         .fld input {
             width: 100%;
             background: var(--inp);
@@ -151,10 +178,12 @@
             outline: none;
             transition: border-color .2s, box-shadow .2s;
         }
+
         .fld input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, .2);
         }
+
         .cfg-status {
             margin-top: 12px;
             padding: 10px 14px;
@@ -163,18 +192,21 @@
             font-weight: 600;
             display: none;
         }
+
         .cfg-status.ok {
             background: rgba(16, 185, 129, .15);
             color: #34d399;
             border: 1px solid rgba(16, 185, 129, .3);
             display: block;
         }
+
         .cfg-status.bad {
             background: rgba(239, 68, 68, .12);
             color: #f87171;
             border: 1px solid rgba(239, 68, 68, .3);
             display: block;
         }
+
         /* Drop zone */
         .dz {
             border: 2px dashed rgba(99, 102, 241, .45);
@@ -186,11 +218,13 @@
             background: rgba(99, 102, 241, .04);
             position: relative;
         }
+
         .dz:hover,
         .dz.over {
             border-color: var(--pl);
             background: rgba(99, 102, 241, .11);
         }
+
         .dz input[type=file] {
             position: absolute;
             inset: 0;
@@ -199,19 +233,23 @@
             width: 100%;
             height: 100%;
         }
+
         .dz-icon {
             font-size: 2.8rem;
             margin-bottom: 10px;
         }
+
         .dz h3 {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 5px;
         }
+
         .dz p {
             color: var(--muted);
             font-size: .88rem;
         }
+
         /* Preview grid */
         #pgrid {
             display: grid;
@@ -219,6 +257,7 @@
             gap: 16px;
             margin-top: 20px;
         }
+
         .pc {
             background: rgba(10, 15, 35, .75);
             border: 1px solid var(--bdr);
@@ -227,10 +266,12 @@
             position: relative;
             transition: transform .2s, box-shadow .2s;
         }
+
         .pc:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 28px rgba(0, 0, 0, .4);
         }
+
         .pc img {
             width: 100%;
             height: 350px;
@@ -239,6 +280,7 @@
             display: block;
             cursor: pointer;
         }
+
         .pc .qr-status {
             position: absolute;
             top: 7px;
@@ -251,12 +293,15 @@
             font-weight: 600;
             backdrop-filter: blur(4px);
         }
+
         .pc .pb {
             padding: 12px;
         }
+
         .fg {
             margin-bottom: 9px;
         }
+
         .fg label {
             display: block;
             font-size: .68rem;
@@ -266,6 +311,7 @@
             letter-spacing: .5px;
             margin-bottom: 4px;
         }
+
         .fg input {
             width: 100%;
             background: var(--inp);
@@ -277,10 +323,12 @@
             outline: none;
             transition: border-color .2s;
         }
+
         .fg input:focus,
         .fg select:focus {
             border-color: var(--primary);
         }
+
         .fg select {
             width: 100%;
             background: var(--inp);
@@ -297,10 +345,12 @@
             background-repeat: no-repeat;
             background-position: calc(100% - 10px) center;
         }
+
         .fg input.err,
         .fg select.err {
             border-color: var(--err);
         }
+
         .rm {
             position: absolute;
             top: 7px;
@@ -318,9 +368,11 @@
             justify-content: center;
             transition: background .2s;
         }
+
         .rm:hover {
             background: var(--err);
         }
+
         /* Upload progress */
         .up-item {
             display: flex;
@@ -333,25 +385,31 @@
             margin-bottom: 8px;
             font-size: .88rem;
         }
+
         .up-item .up-name {
             flex: 1;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .up-item .up-icon {
             font-size: 1.2rem;
             flex-shrink: 0;
         }
+
         .up-item.done .up-icon::after {
             content: '✅';
         }
+
         .up-item.fail .up-icon::after {
             content: '❌';
         }
+
         .up-item.going .up-icon::after {
             content: '⏳';
         }
+
         /* Buttons */
         .btn {
             display: inline-flex;
@@ -365,29 +423,35 @@
             cursor: pointer;
             transition: all .25s;
         }
+
         .btn-p {
             background: linear-gradient(135deg, #6366f1, #4f46e5);
             color: #fff;
             box-shadow: 0 4px 18px rgba(99, 102, 241, .4);
         }
+
         .btn-p:hover {
             transform: translateY(-2px);
             box-shadow: 0 7px 22px rgba(99, 102, 241, .5);
         }
+
         .btn-p:disabled {
             opacity: .5;
             cursor: not-allowed;
             transform: none;
         }
+
         .btn-s {
             background: rgba(255, 255, 255, .06);
             color: var(--muted);
             border: 1px solid var(--bdr);
         }
+
         .btn-s:hover {
             background: rgba(255, 255, 255, .12);
             color: #fff;
         }
+
         .abar {
             display: flex;
             gap: 11px;
@@ -395,17 +459,20 @@
             align-items: center;
             margin-top: 22px;
         }
+
         .cbadge {
             margin-left: auto;
             color: var(--muted);
             font-size: .88rem;
         }
+
         /* Records */
         .rlist {
             display: flex;
             flex-direction: column;
             gap: 11px;
         }
+
         .rrow {
             display: flex;
             align-items: center;
@@ -416,9 +483,11 @@
             padding: 11px 15px;
             transition: background .2s;
         }
+
         .rrow:hover {
             background: rgba(99, 102, 241, .07);
         }
+
         .rthumb {
             width: 52px;
             height: 52px;
@@ -428,10 +497,12 @@
             border: 1px solid var(--bdr);
             cursor: pointer;
         }
+
         .rinfo {
             flex: 1;
             min-width: 0;
         }
+
         .rinfo strong {
             display: block;
             font-size: .92rem;
@@ -439,11 +510,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .rmeta {
             font-size: .78rem;
             color: var(--muted);
             margin-top: 2px;
         }
+
         .rdel {
             background: none;
             border: none;
@@ -454,9 +527,11 @@
             border-radius: 6px;
             transition: background .2s;
         }
+
         .rdel:hover {
             background: rgba(239, 68, 68, .15);
         }
+
         .spill {
             background: rgba(99, 102, 241, .1);
             border: 1px solid rgba(99, 102, 241, .25);
@@ -467,6 +542,7 @@
             font-weight: 600;
             margin-right: 6px;
         }
+
         /* Toast */
         #toast {
             position: fixed;
@@ -482,31 +558,38 @@
             transition: opacity .3s, transform .3s;
             pointer-events: none;
         }
+
         #toast.show {
             opacity: 1;
             transform: translateY(0);
         }
+
         #toast.ok {
             background: rgba(16, 185, 129, .92);
             color: #fff;
         }
+
         #toast.er {
             background: rgba(239, 68, 68, .92);
             color: #fff;
         }
+
         #toast.in {
             background: rgba(99, 102, 241, .92);
             color: #fff;
         }
+
         .empty {
             text-align: center;
             padding: 38px 20px;
             color: var(--muted);
         }
+
         .empty .ei {
             font-size: 2.4rem;
             margin-bottom: 9px;
         }
+
         /* Modal */
         #imod {
             display: none;
@@ -517,15 +600,18 @@
             align-items: center;
             justify-content: center;
         }
+
         #imod.open {
             display: flex;
         }
+
         #imod img {
             max-width: 90vw;
             max-height: 88vh;
             border-radius: 14px;
             box-shadow: 0 18px 55px rgba(0, 0, 0, .6);
         }
+
         #imod .cm {
             position: fixed;
             top: 16px;
@@ -543,32 +629,39 @@
             justify-content: center;
             transition: background .2s;
         }
+
         #imod .cm:hover {
             background: rgba(255, 255, 255, .26);
         }
+
         @media(max-width:580px) {
             #pgrid {
                 grid-template-columns: 1fr;
                 gap: 12px;
             }
+
             .abar {
                 flex-direction: column;
                 align-items: stretch;
             }
+
             .btn {
                 justify-content: center;
                 width: 100%;
             }
+
             .cbadge {
                 margin: 10px 0 0 0;
                 text-align: center;
             }
+
             .pc img {
                 height: 350px;
                 object-fit: contain;
                 background: #000;
             }
         }
+
         @media(max-width: 400px) {
             #pgrid {
                 grid-template-columns: 1fr;
@@ -576,6 +669,7 @@
         }
     </style>
 </head>
+
 <body>
     <nav>
         <a href="prints/index.html">📄 Labels</a>
@@ -584,10 +678,12 @@
         <a href="uploads.html" class="on">📸 Upload Tracking</a>
         <a href="search.html">🔎 Search Photos</a>
     </nav>
+
     <div class="ph">
         <h1>📸 Tracking Photo Upload</h1>
         <p>Upload delivery photos to GitHub — searchable by last 5 digits of phone number.</p>
     </div>
+
     <!-- GitHub Config -->
     <div class="card">
         <div class="stitle">⚙️ GitHub Configuration <span
@@ -607,6 +703,7 @@
         <p style="margin-top:12px;font-size:.78rem;color:var(--muted);">⚠️ Token needs <strong>repo</strong> scope. Your
             token is stored only in this browser (localStorage).</p>
     </div>
+
     <!-- Upload -->
     <div class="card">
         <div class="stitle">⬆️ Upload Photos</div>
@@ -624,6 +721,7 @@
         </div>
         <div id="uplog" style="margin-top:16px;"></div>
     </div>
+
     <!-- Records -->
     <div class="card">
         <div class="stitle">📦 Uploaded Records <button class="btn btn-s"
@@ -637,17 +735,20 @@
             </div>
         </div>
     </div>
+
     <div id="imod">
         <button class="cm" onclick="closeMod()">✕</button>
         <img id="mimg" src="" alt="">
     </div>
     <div id="toast"></div>
+
     <script>
         const CFGKEY = 'ghTrackCfg';
         const DEFAULT_GH_REPO = "ezyship/track";
         const DEFAULT_GH_BRANCH = "main";
         let pending = [];
         let cfg = {};
+
         // ── Config ──
         function loadConfig() {
             try { cfg = JSON.parse(localStorage.getItem(CFGKEY) || '{}'); } catch { cfg = {}; }
@@ -673,11 +774,13 @@
             saveConfig();
             const st = document.getElementById('cfg-status');
             st.className = 'cfg-status'; st.textContent = 'Testing connection...'; st.style.display = 'block';
+
             if (!cfg.repo.includes('/')) {
                 st.className = 'cfg-status bad';
                 st.innerHTML = '❌ <b>Invalid Repo Format</b><br>Please use "owner/repo" (e.g., ezyship/track)';
                 return;
             }
+
             try {
                 const r = await ghGet(`repos/${cfg.repo}`);
                 st.className = 'cfg-status ok';
@@ -688,11 +791,13 @@
                 let help = 'Check your Token and Repository name.';
                 if (e.message.includes('401')) help = 'Invalid Token. Please check your GitHub PAT.';
                 if (e.message.includes('404')) help = 'Repository not found. Check the owner/repo name.';
+
                 st.className = 'cfg-status bad';
                 st.innerHTML = `❌ <b>Connection Failed</b><br>${e.message}<br><small>${help}</small>`;
                 toast('GitHub Connection Failed', 'er');
             }
         }
+
         // ── GitHub API ──
         function ghHeaders() { return { 'Authorization': 'token ' + cfg.token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' }; }
         async function ghGet(path) {
@@ -710,12 +815,24 @@
             if (!r.ok) { const e = await r.json(); throw new Error(e.message || r.status); }
             return r.json();
         }
+
         async function getFileSHA(path) {
             try { const d = await ghGet(`repos/${cfg.repo}/contents/${path}?ref=${cfg.branch}`); return d.sha; }
             catch { return null; }
         }
-        // Upload image file to GitHub
+
+        // Upload image file to Firebase Storage or fallback to GitHub
         async function uploadImage(filename, dataUrl) {
+            if (firebaseStorage) {
+                try {
+                    const ref = firebaseStorage.ref().child('images/' + filename);
+                    const snapshot = await ref.putString(dataUrl, 'data_url');
+                    const downloadUrl = await snapshot.ref.getDownloadURL();
+                    return downloadUrl;
+                } catch (e) {
+                    console.error("Firebase Storage upload failed, falling back to GitHub:", e);
+                }
+            }
             const base64 = dataUrl.split(',')[1];
             const path = `images/${filename}`;
             const sha = await getFileSHA(path);
@@ -724,8 +841,25 @@
             await ghPut(`repos/${cfg.repo}/contents/${path}`, body);
             return `https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch}/${path}`;
         }
-        // records.json helpers
+
+        // records.json / Firebase DB helpers
         async function fetchRecordsJSON() {
+            if (firebaseDb) {
+                try {
+                    const snapshot = await firebaseDb.ref('records').once('value');
+                    const val = snapshot.val();
+                    // Firebase DB might return object/dictionary or array. Handles both.
+                    let records = [];
+                    if (val) {
+                        records = Array.isArray(val) ? val : Object.values(val);
+                    }
+                    // Filter out any null elements that can occur from array index gaps in Firebase
+                    records = records.filter(r => r !== null && r !== undefined);
+                    return { records, sha: null };
+                } catch (e) {
+                    console.error("Firebase DB read failed, falling back to GitHub:", e);
+                }
+            }
             try {
                 // Add cache buster to ensure latest SHA
                 const d = await ghGet(`repos/${cfg.repo}/contents/records.json?ref=${cfg.branch}&t=${Date.now()}`);
@@ -734,11 +868,20 @@
             } catch { return { records: [], sha: null }; }
         }
         async function pushRecordsJSON(records, sha) {
+            if (firebaseDb) {
+                try {
+                    await firebaseDb.ref('records').set(records);
+                    return;
+                } catch (e) {
+                    console.error("Firebase DB write failed, falling back to GitHub:", e);
+                }
+            }
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(records, null, 2))));
             const body = { message: 'Update records.json', content, branch: cfg.branch };
             if (sha) body.sha = sha;
             await ghPut(`repos/${cfg.repo}/contents/records.json`, body);
         }
+
         // ── File Input ──
         const dz = document.getElementById('dz');
         const fi = document.getElementById('fi');
@@ -746,7 +889,9 @@
         dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
         dz.addEventListener('dragleave', () => dz.classList.remove('over'));
         dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); handleFiles(e.dataTransfer.files); });
+
         function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
         function handleFiles(files) {
             const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
             if (!imgs.length) { toast('No valid images', 'er'); return; }
@@ -758,6 +903,7 @@
                     const pObj = { id: pid, dataUrl, file: f, name: '', pincode: '', phone: '', awb: '', status: 'Scanning...' };
                     pending.push(pObj);
                     renderGrid();
+
                     // Auto-fetch via Barcode / QR Code
                     const img = new Image();
                     img.onload = async () => {
@@ -767,7 +913,9 @@
                         if (w > 1200) { h *= 1200 / w; w = 1200; }
                         cvs.width = w; cvs.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
+
                         let detected = false;
+
                         // 1. Try Native BarcodeDetector API (provided by user)
                         if ('BarcodeDetector' in window) {
                             try {
@@ -782,6 +930,7 @@
                                 }
                             } catch (e) { console.error("Native detector error:", e); }
                         }
+
                         // 2. Fallback to jsQR for QR codes if native failed or to be thorough
                         if (!detected) {
                             const imgData = ctx.getImageData(0, 0, w, h);
@@ -792,6 +941,7 @@
                                 detected = true;
                             }
                         }
+
                         if (!detected) pObj.status = '⚠️ No codes found';
                         renderGrid();
                     };
@@ -803,15 +953,20 @@
         function processDetectedText(text, pObj) {
             if (!text) return;
             text = text.trim();
+
             let phMatch = text.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
             let pinMatch = text.match(/\b(\d{6})\b/);
+
             if (phMatch && !pObj.phone) pObj.phone = phMatch[1].replace(/\s/g, '').slice(-10);
             if (pinMatch && !pObj.pincode) pObj.pincode = pinMatch[1];
+
             const digitsOnly = text.replace(/\D/g, '');
             const isOnlyPhone = phMatch && text.replace(/(?:\+|00)?91|\D/g, '') === digitsOnly && (digitsOnly.length >= 10);
             const isOnlyPin = pinMatch && digitsOnly.length === 6;
             const hasBothPhoneAndPin = !!(phMatch && pinMatch);
+
             if (!hasBothPhoneAndPin && !isOnlyPhone && !isOnlyPin && text.length > 5 && !pObj.awb) pObj.awb = text.trim();
+
             if (phMatch || pinMatch) {
                 let n = text;
                 if (phMatch) n = n.replace(phMatch[0], '');
@@ -821,6 +976,7 @@
             }
             syncDOM(pObj);
         }
+
         function syncDOM(p) {
             const n = document.getElementById(`n-${p.id}`);
             const a = document.getElementById(`a-${p.id}`);
@@ -833,6 +989,7 @@
             if (ph && p.phone && !ph.value) ph.value = p.phone;
             if (st) st.textContent = p.status;
         }
+
         function renderGrid() {
             const g = document.getElementById('pgrid');
             const ab = document.getElementById('abar');
@@ -857,6 +1014,7 @@
                 } else { syncDOM(p); }
             });
         }
+
         function detectCourier(num) {
             if (!num) return '';
             const n = String(num).toUpperCase();
@@ -865,6 +1023,7 @@
             if (n.includes('TRACKON')) return 'Trackon';
             return '';
         }
+
         function upd(id, f, v) { const p = pending.find(x => x.id === id); if (p) p[f] = v.trim(); }
         function rmPending(id) { 
             pending = pending.filter(p => p.id !== id); 
@@ -875,6 +1034,7 @@
             document.getElementById('pcnt').textContent = `${pending.length} photo${pending.length > 1 ? 's' : ''} pending`;
         }
         function clearPending() { pending = []; renderGrid(); fi.value = ''; document.getElementById('uplog').innerHTML = ''; }
+
         // ── Upload All ──
         async function uploadAll() {
             let ok = true;
@@ -883,7 +1043,9 @@
                 p.pincode = (document.getElementById(`p-${p.id}`)?.value || '').trim();
                 p.phone = (document.getElementById(`ph-${p.id}`)?.value || '').trim();
                 p.awb = (document.getElementById(`a-${p.id}`)?.value || '').trim();
+
                 ['n', 'p', 'ph', 'a'].forEach(pre => document.getElementById(`${pre}-${p.id}`)?.classList.remove('err'));
+
                 // Relaxed validation: Need AT LEAST a Phone OR an AWB. Name and Pincode are optional now.
                 if (!p.phone && !p.awb) {
                     document.getElementById(`ph-${p.id}`)?.classList.add('err');
@@ -892,17 +1054,20 @@
                 }
             });
             if (!ok) { toast('Need at least a Phone Number or AWB to link the photo', 'er'); return; }
-            if (!cfg.token || !cfg.repo) { toast('Save GitHub config first!', 'er'); return; }
+            if (!firebaseInitialized && (!cfg.token || !cfg.repo)) { toast('Save GitHub config first!', 'er'); return; }
+
             const btn = document.getElementById('ubtn');
             btn.disabled = true; btn.textContent = '⏳ Uploading…';
             const log = document.getElementById('uplog');
             log.innerHTML = '<div style="font-size:.85rem;color:var(--muted);margin-bottom:8px;">Upload progress:</div>';
+
             const newRecords = [];
             for (let p of pending) {
                 const item = document.createElement('div');
                 item.className = 'up-item going';
                 item.innerHTML = `<span class="up-icon"></span><span class="up-name">${p.name} — ${p.file?.name || 'photo'}</span><span style="color:var(--muted);font-size:.8rem;">Saving…</span>`;
                 log.appendChild(item);
+
                 try {
                     const ts = new Date().toISOString();
                     // Use last-5 digits of Phone OR AWB for filename linking
@@ -923,32 +1088,40 @@
                     item.querySelector('span:last-child').textContent = 'Failed: ' + e.message;
                 }
             }
+
             if (newRecords.length > 0) {
                 try {
                     const statusItem = document.createElement('div');
                     statusItem.className = 'up-item going';
-                    statusItem.innerHTML = `<span class="up-icon"></span><span class="up-name">Updating records.json</span>`;
+                    statusItem.innerHTML = `<span class="up-icon"></span><span class="up-name">Updating Database</span>`;
                     log.appendChild(statusItem);
+
                     const { records, sha } = await fetchRecordsJSON();
                     const updatedRecords = [...records, ...newRecords];
                     await pushRecordsJSON(updatedRecords, sha);
+
                     statusItem.className = 'up-item done';
                     statusItem.innerHTML = `<span class="up-icon"></span><span class="up-name">Database updated! ✅</span>`;
-                } catch (e) { toast('Failed to update records.json: ' + e.message, 'er'); }
+                } catch (e) { toast('Failed to update database: ' + e.message, 'er'); }
             }
-            btn.disabled = false; btn.textContent = '☁️ Upload to GitHub';
+
+            btn.disabled = false; btn.textContent = firebaseInitialized ? '☁️ Upload' : '☁️ Upload to GitHub';
             toast(`Upload complete!`, 'ok');
             clearPending();
             loadRecords();
         }
+
         // ── Load & Display Records ──
         async function loadRecords() {
             const list = document.getElementById('rlist');
-            list.innerHTML = '<div class="empty"><div class="ei">⏳</div><p>Loading from GitHub…</p></div>';
-            if (!cfg.repo) { list.innerHTML = '<div class="empty"><div class="ei">⚙️</div><p>Configure GitHub Repository first.</p></div>'; return; }
+            list.innerHTML = firebaseDb ? '<div class="empty"><div class="ei">⏳</div><p>Loading from Database…</p></div>' : '<div class="empty"><div class="ei">⏳</div><p>Loading from GitHub…</p></div>';
+            if (!firebaseDb && !cfg.repo) { list.innerHTML = '<div class="empty"><div class="ei">⚙️</div><p>Configure GitHub Repository first.</p></div>'; return; }
             try {
                 let records = [];
-                if (cfg.token) {
+                if (firebaseDb) {
+                    const { records: r } = await fetchRecordsJSON();
+                    records = r;
+                } else if (cfg.token) {
                     const { records: r } = await fetchRecordsJSON();
                     records = r;
                 } else {
@@ -959,6 +1132,7 @@
                 renderRecords(records);
             } catch (e) { list.innerHTML = `<div class="empty"><div class="ei">❌</div><p>${e.message}</p></div>`; }
         }
+
         function renderRecords(records) {
             const list = document.getElementById('rlist');
             const sb = document.getElementById('sbar');
@@ -975,6 +1149,7 @@
       <button class="rdel" onclick="deleteRecord('${r.id}','${r.photoPath || ''}')" title="Delete">🗑</button>
     </div>`).join('');
         }
+
         async function deleteRecord(id, photoPath) {
             if (!confirm('Delete this record?')) return;
             try {
@@ -982,29 +1157,46 @@
                 const updated = records.filter(r => r.id !== id);
                 await pushRecordsJSON(updated, sha);
                 if (photoPath) {
-                    const fsha = await getFileSHA(photoPath);
-                    if (fsha) await ghDel(`repos/${cfg.repo}/contents/${photoPath}`, { message: 'Delete photo', sha: fsha, branch: cfg.branch });
+                    if (firebaseStorage) {
+                        try {
+                            await firebaseStorage.ref().child(photoPath).delete();
+                        } catch (se) {
+                            console.warn("Firebase Storage photo delete failed, trying GitHub delete:", se);
+                            try {
+                                const fsha = await getFileSHA(photoPath);
+                                if (fsha) await ghDel(`repos/${cfg.repo}/contents/${photoPath}`, { message: 'Delete photo', sha: fsha, branch: cfg.branch });
+                            } catch (ge) {}
+                        }
+                    } else {
+                        const fsha = await getFileSHA(photoPath);
+                        if (fsha) await ghDel(`repos/${cfg.repo}/contents/${photoPath}`, { message: 'Delete photo', sha: fsha, branch: cfg.branch });
+                    }
                 }
                 toast('Record deleted', 'in');
                 loadRecords();
             } catch (e) { toast('Delete failed: ' + e.message, 'er'); }
         }
+
         function fmtDate(iso) {
             if (!iso) return 'N/A';
             const d = new Date(iso); if (isNaN(d)) return iso;
             const p = n => String(n).padStart(2, '0');
             return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
         }
+
         function openMod(url) { document.getElementById('mimg').src = url; document.getElementById('imod').classList.add('open'); }
         function closeMod() { document.getElementById('imod').classList.remove('open'); document.getElementById('mimg').src = ''; }
         document.getElementById('imod').addEventListener('click', e => { if (e.target === document.getElementById('imod')) closeMod(); });
+
         function toast(msg, type = 'ok') {
             const t = document.getElementById('toast');
             t.className = `${type} show`; t.textContent = msg;
             setTimeout(() => t.className = '', 3200);
         }
+
         loadConfig();
         loadRecords();
     </script>
 </body>
+
 </html>

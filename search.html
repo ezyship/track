@@ -1,11 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Tracking Photos</title>
+    <style id="auth-guard-style">body { display: none !important; }</style>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>enforceAuth();</script>
+
     <style>
         :root {
             --primary: #3b82f6;
@@ -16,12 +25,14 @@
             --text-muted: #94a3b8;
             --border: rgba(255, 255, 255, 0.1);
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Outfit', sans-serif;
         }
+
         body {
             background-color: var(--bg);
             background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 40%),
@@ -33,6 +44,7 @@
             align-items: center;
             padding: 40px 20px;
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -42,6 +54,7 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .header h1 {
             font-size: 2.5rem;
             font-weight: 700;
@@ -49,6 +62,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .glass-card {
             background: var(--card-bg);
             backdrop-filter: blur(16px);
@@ -60,11 +74,13 @@
             width: 100%;
             max-width: 1000px;
         }
+
         .search-bar {
             margin-bottom: 20px;
             display: flex;
             gap: 10px;
         }
+
         .search-bar input {
             flex: 1;
             padding: 12px 16px;
@@ -75,12 +91,14 @@
             font-size: 1rem;
             outline: none;
         }
+
         .status-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
+
         .status-card {
             background: rgba(15, 23, 42, 0.4);
             border: 1px solid var(--border);
@@ -88,11 +106,13 @@
             overflow: hidden;
             transition: all 0.3s ease;
         }
+
         .status-card:hover {
             transform: translateY(-5px);
             border-color: var(--primary);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
+
         .card-photo {
             width: 100%;
             height: 180px;
@@ -101,15 +121,18 @@
             border-bottom: 1px solid var(--border);
             cursor: pointer;
         }
+
         .card-content {
             padding: 15px;
         }
+
         .card-phone {
             font-weight: 700;
             font-size: 1.1rem;
             margin-bottom: 5px;
             color: #f1f5f9;
         }
+
         .card-status {
             display: inline-block;
             padding: 4px 12px;
@@ -120,16 +143,19 @@
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
         }
+
         .card-time {
             font-size: 0.8rem;
             color: var(--text-muted);
             display: block;
         }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: var(--text-muted);
         }
+
         .nav-links {
             margin-top: 30px;
             display: flex;
@@ -137,6 +163,7 @@
             flex-wrap: wrap;
             justify-content: center;
         }
+
         .nav-links a {
             color: #3b82f6;
             text-decoration: none;
@@ -146,10 +173,12 @@
             border-radius: 8px;
             transition: all 0.2s ease;
         }
+
         .nav-links a:hover {
             background: #3b82f6;
             color: white;
         }
+
         /* Modal */
         #imod {
             display: none;
@@ -163,6 +192,7 @@
         #imod.open { display: flex; }
         #imod img { max-width: 90vw; max-height: 88vh; border-radius: 14px; }
         .close-btn { position: absolute; top: 20px; right: 20px; font-size: 2rem; color: white; cursor: pointer; }
+
         @media(max-width: 600px) {
             body {
                 padding: 20px 15px;
@@ -199,13 +229,16 @@
         }
     </style>
 </head>
+
 <body>
+
     <div class="header">
         <h1>📸 Photo Records</h1>
         <div style="display: flex; gap: 10px;">
             <button onclick="loadStatusData()" style="background:none; border:1px solid rgba(59,130,246,0.5); color:#60a5fa; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600;">↻ Refresh</button>
         </div>
     </div>
+
     <div class="glass-card">
         <div class="search-bar">
             <input type="text" id="searchInput" placeholder="🔍 Search by phone number..." onkeyup="filterCards()">
@@ -217,6 +250,7 @@
             <p>No tracking updates found. Start by uploading a photo!</p>
         </div>
     </div>
+
     <div class="nav-links">
         <a href="prints/index.html">📄 Labels</a>
         <a href="prints/scanner.html">🔍 Scanner</a>
@@ -224,25 +258,31 @@
         <a href="uploads.html">📸 Upload Tracking</a>
         <a href="search.html" class="on">🔎 Search Photos</a>
     </div>
+
     <div id="imod" onclick="this.classList.remove('open')">
         <span class="close-btn">&times;</span>
         <img id="mimg" src="">
     </div>
+
     <script>
         let allRecords = [];
+
         function safeDate(val) {
             if (!val) return new Date(0);
             const d = new Date(val);
             return isNaN(d.getTime()) ? new Date(0) : d;
         }
+
         function safeDateStr(val) {
             if (!val) return 'N/A';
             const d = new Date(val);
             return isNaN(d.getTime()) ? String(val) : d.toLocaleString();
         }
+
         window.onload = function() {
             loadStatusData();
         }
+
         async function loadStatusData() {
             const grid = document.getElementById('statusGrid');
             const empty = document.getElementById('emptyState');
@@ -250,6 +290,7 @@
             grid.innerHTML = '<div class="empty-state"><div class="spinner" style="width:40px;height:40px;margin:20px auto;border:3px solid rgba(255,255,255,0.1);border-top-color:#60a5fa;border-radius:50%;animation:spin 1s linear infinite;"></div><p>Fetching records...</p></div>';
             
             allRecords = [];
+
             // 1. Try local storage
             const localData = JSON.parse(localStorage.getItem('trackingData') || '{}');
             Object.entries(localData).forEach(([id, data]) => {
@@ -261,40 +302,62 @@
                     name: 'Local Record'
                 });
             });
-            // 2. Try GitHub
-            const cfg = JSON.parse(localStorage.getItem('ghTrackCfg') || '{}');
-            if (!cfg.repo) {
-                cfg.repo = "ezyship/track";
-                localStorage.setItem('ghTrackCfg', JSON.stringify(cfg));
-            }
-            let ghRecords = [];
+
+            // 2. Try Firebase Database
+            let dbRecords = [];
             let loaded = false;
-            if (cfg.token && cfg.repo) {
+
+            if (firebaseDb) {
                 try {
-                    const res = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/records.json?ref=${cfg.branch || 'main'}&t=${Date.now()}`, {
-                        headers: { 'Authorization': 'token ' + cfg.token }
-                    });
-                    
-                    if (res.ok) {
-                        const d = await res.json();
-                        const decoded = atob(d.content.replace(/\n/g, ''));
-                        ghRecords = decoded.trim() ? JSON.parse(decoded) : [];
-                        loaded = true;
+                    const snapshot = await firebaseDb.ref('records').once('value');
+                    const val = snapshot.val();
+                    if (val) {
+                        dbRecords = Array.isArray(val) ? val : Object.values(val);
                     }
-                } catch (e) { console.error("GitHub fetch failed:", e); }
+                    dbRecords = dbRecords.filter(r => r !== null && r !== undefined);
+                    loaded = true;
+                } catch (e) {
+                    console.error("Firebase DB fetch failed:", e);
+                }
             }
-            if (!loaded && cfg.repo) {
-                try {
-                    const res = await fetch(`https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch || 'main'}/records.json?t=${Date.now()}`);
-                    if (res.ok) {
-                        const text = await res.text();
-                        ghRecords = text.trim() ? JSON.parse(text) : [];
-                        loaded = true;
-                    }
-                } catch (e) { console.error("Public raw GitHub fetch failed:", e); }
+
+            // 3. Fallback to GitHub
+            if (!loaded) {
+                const cfg = JSON.parse(localStorage.getItem('ghTrackCfg') || '{}');
+                if (!cfg.repo) {
+                    cfg.repo = "ezyship/track";
+                    localStorage.setItem('ghTrackCfg', JSON.stringify(cfg));
+                }
+                
+                if (cfg.token && cfg.repo) {
+                    try {
+                        const res = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/records.json?ref=${cfg.branch || 'main'}&t=${Date.now()}`, {
+                            headers: { 'Authorization': 'token ' + cfg.token }
+                        });
+                        
+                        if (res.ok) {
+                            const d = await res.json();
+                            const decoded = atob(d.content.replace(/\n/g, ''));
+                            dbRecords = decoded.trim() ? JSON.parse(decoded) : [];
+                            loaded = true;
+                        }
+                    } catch (e) { console.error("GitHub fetch failed:", e); }
+                }
+
+                if (!loaded && cfg.repo) {
+                    try {
+                        const res = await fetch(`https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch || 'main'}/records.json?t=${Date.now()}`);
+                        if (res.ok) {
+                            const text = await res.text();
+                            dbRecords = text.trim() ? JSON.parse(text) : [];
+                            loaded = true;
+                        }
+                    } catch (e) { console.error("Public raw GitHub fetch failed:", e); }
+                }
             }
+
             if (loaded) {
-                ghRecords.forEach(r => {
+                dbRecords.forEach(r => {
                     if (!allRecords.find(lr => lr.phone === r.phone)) {
                         allRecords.push({
                             phone: r.phone,
@@ -306,20 +369,26 @@
                     }
                 });
             }
+
             renderGrid(allRecords);
         }
+
         function renderGrid(records) {
             const grid = document.getElementById('statusGrid');
             const empty = document.getElementById('emptyState');
+
             if (records.length === 0) {
                 empty.style.display = 'block';
                 grid.style.display = 'none';
                 return;
             }
+
             records.sort((a, b) => safeDate(b.updateTime) - safeDate(a.updateTime));
+
             empty.style.display = 'none';
             grid.style.display = 'grid';
             grid.innerHTML = '';
+
             records.forEach(data => {
                 const card = document.createElement('div');
                 card.className = 'status-card';
@@ -334,6 +403,7 @@
                 grid.appendChild(card);
             });
         }
+
         function filterCards() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allRecords.filter(r => 
@@ -342,6 +412,7 @@
             );
             renderGrid(filtered);
         }
+
         function openMod(url) {
             document.getElementById('mimg').src = url;
             document.getElementById('imod').classList.add('open');
@@ -351,4 +422,5 @@
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </body>
+
 </html>
