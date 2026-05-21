@@ -64,6 +64,12 @@ function enforceAuth() {
     });
 }
 
+// Determine path to index.html dynamically based on subdirectory depth
+function getMainUrl() {
+    const isSubdir = window.location.pathname.includes('/prints/');
+    return isSubdir ? '../index.html' : 'index.html';
+}
+
 // Global sign out helper
 async function handleLogout(e) {
     if (e) e.preventDefault();
@@ -74,5 +80,5 @@ async function handleLogout(e) {
             console.error("Sign out failed", err);
         }
     }
-    window.location.href = getLoginUrl();
+    window.location.href = getMainUrl();
 }
