@@ -1011,6 +1011,7 @@
             document.getElementById('qbCustomerName').value = name;
             document.getElementById('qbCustomerAddress').value = address;
             qbActiveGst = gst;
+            document.getElementById('qbProductName').value = 'NAME';
             document.getElementById('qbProductQty').value = '1';
             document.getElementById('qbOrderAmount').value = '';
             document.getElementById('qbPaymentStatus').value = 'unpaid';
@@ -1201,6 +1202,7 @@
             var name = document.getElementById('qbCustomerName').value.trim();
             var address = document.getElementById('qbCustomerAddress').value.trim();
             var gst = qbActiveGst.trim().toUpperCase();
+            var productName = document.getElementById('qbProductName').value.trim() || 'NAME';
             var total = parseFloat(document.getElementById('qbOrderAmount').value) || 0;
             var qty = parseFloat(document.getElementById('qbProductQty').value) || 1;
             var status = document.getElementById('qbPaymentStatus').value;
@@ -1265,7 +1267,7 @@
                     // Append item to existing bill
                     activeBill.items = activeBill.items || [];
                     activeBill.items.push({
-                        productName: "Order Item",
+                        productName: productName,
                         quantity: qty,
                         rate: rate,
                         total: total,
@@ -1308,7 +1310,7 @@
                     var invoiceNo = (qbSettings.invoicePrefix || 'INV-2026-') + nextNoFormatted;
 
                     var items = [{
-                        productName: "Order Item",
+                        productName: productName,
                         quantity: qty,
                         rate: rate,
                         total: total,
@@ -1364,6 +1366,9 @@
 
         async function syncCustomerLedgerTotals(phone) {
             if (typeof firebaseDb === 'undefined' || !firebaseDb) return;
+            const customerSnap = await firebaseDb.ref('customers/' + phone).once('value');
+            if (!customerSnap.exists()) return; // Do not recreate deleted customer profiles during ledger recalculations
+
             const billsSnap = await firebaseDb.ref('bills').orderByChild('customerPhone').equalTo(phone).once('value');
             
             let totalBusiness = 0;
@@ -1428,6 +1433,11 @@
                 <div class="qb-form-group">
                     <label for="qbCustomerAddress">Shipping Address</label>
                     <textarea id="qbCustomerAddress" rows="2" placeholder="Shipping Address"></textarea>
+                </div>
+
+                <div class="qb-form-group">
+                    <label for="qbProductName">Product Name</label>
+                    <input type="text" id="qbProductName" value="NAME" placeholder="Product Name">
                 </div>
 
                 <div class="qb-form-row">
