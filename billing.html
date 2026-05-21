@@ -456,6 +456,55 @@
             outline: none;
         }
 
+        /* Product Autocomplete Dropdown styling */
+        .product-autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .product-suggestions-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            z-index: 1000;
+            max-height: 180px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+        }
+
+        .product-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .product-suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-suggestion-item:hover {
+            background: rgba(59, 130, 246, 0.25);
+            color: white;
+        }
+
+        .product-suggestion-item span.rate {
+            color: #60a5fa;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
         /* Data list styling */
         .data-table-container {
             overflow-x: auto;
@@ -798,6 +847,7 @@
             <div class="card-header">
                 <h2 id="invoice-editor-title">🧾 Create New Invoice</h2>
                 <div style="display:flex; gap:10px;">
+                    <button class="btn btn-s btn-sm" onclick="showAddCustomerModal()">👥 Add Customer</button>
                     <button class="btn btn-s btn-sm" onclick="showSettingsModal()">⚙️ Settings</button>
                     <button class="btn btn-danger btn-sm" onclick="clearBillScreen()">🧹 Clear Screen</button>
                 </div>
@@ -1193,6 +1243,38 @@
         </div>
     </div>
 
+    <!-- Add Customer Account Modal -->
+    <div class="modal" id="addCustomerModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>👥 Create Customer Account</h3>
+                <button class="modal-close" onclick="closeModal('addCustomerModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="acName">Customer Name (Required)</label>
+                    <input type="text" id="acName" placeholder="e.g. Acme Corp">
+                </div>
+                <div class="form-group">
+                    <label for="acPhone">Phone Number (Required)</label>
+                    <input type="text" id="acPhone" placeholder="10-digit mobile number">
+                </div>
+                <div class="form-group">
+                    <label for="acAddress">Shipping Address</label>
+                    <textarea id="acAddress" rows="3" placeholder="Street Address, City, Pincode, State"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="acGst">GSTIN (Optional)</label>
+                    <input type="text" id="acGst" placeholder="15-digit GSTIN" style="text-transform: uppercase;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="saveCustomerAccount()">Create Account</button>
+                <button class="btn btn-s" onclick="closeModal('addCustomerModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- FeedBack Toast Notifications -->
     <div id="toast">Ready</div>
 
@@ -1357,7 +1439,10 @@
             tr.id = rowId;
             tr.innerHTML = `
                 <td>
-                    <input type="text" placeholder="Enter product name / description" value="${name}" class="item-name" required>
+                    <div class="product-autocomplete-container">
+                        <input type="text" placeholder="Enter product name / description" value="${name}" class="item-name" required onfocus="showProductSuggestions(this)" oninput="filterProductSuggestions(this)" autocomplete="off">
+                        <div class="product-suggestions-dropdown"></div>
+                    </div>
                 </td>
                 <td>
                     <input type="number" value="${qty}" min="1" class="item-qty" style="text-align: right;" oninput="recalcItemTotal('${rowId}')">
@@ -1399,6 +1484,108 @@
                 calculateGrandTotal();
             }
         }
+
+        // --- Product Suggestions Autocomplete Logic ---
+        function getUniqueProductsFromBills() {
+            const products = {};
+            Object.values(allBills).forEach(bill => {
+                if (bill.items && Array.isArray(bill.items)) {
+                    bill.items.forEach(item => {
+                        const name = item.productName ? item.productName.trim() : "";
+                        if (name) {
+                            const time = new Date(bill.createdAt).getTime();
+                            if (!products[name] || products[name].time < time) {
+                                products[name] = {
+                                    name: name,
+                                    rate: item.rate || 0,
+                                    time: time
+                                };
+                            }
+                        }
+                    });
+                }
+            });
+            return Object.values(products).sort((a, b) => b.time - a.time);
+        }
+
+        function showProductSuggestions(inputEl) {
+            const dropdown = inputEl.nextElementSibling;
+            if (!dropdown) return;
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.product-suggestions-dropdown').forEach(d => {
+                if (d !== dropdown) d.style.display = 'none';
+            });
+
+            const uniqueProducts = getUniqueProductsFromBills();
+            if (uniqueProducts.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            renderProductDropdownList(inputEl, dropdown, uniqueProducts);
+        }
+
+        function filterProductSuggestions(inputEl) {
+            const dropdown = inputEl.nextElementSibling;
+            if (!dropdown) return;
+
+            const val = inputEl.value.toLowerCase().trim();
+            const uniqueProducts = getUniqueProductsFromBills();
+            
+            const filtered = uniqueProducts.filter(p => p.name.toLowerCase().includes(val));
+            
+            if (filtered.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            renderProductDropdownList(inputEl, dropdown, filtered);
+        }
+
+        function renderProductDropdownList(inputEl, dropdown, products) {
+            dropdown.innerHTML = '';
+            
+            products.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'product-suggestion-item';
+                div.innerHTML = `<span>📦 ${p.name}</span><span class="rate">₹${p.rate.toFixed(2)}</span>`;
+                div.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    selectProductSuggestion(inputEl, p.name, p.rate);
+                });
+                dropdown.appendChild(div);
+            });
+            
+            dropdown.style.display = 'block';
+        }
+
+        function selectProductSuggestion(inputEl, productName, productRate) {
+            inputEl.value = productName;
+            
+            const row = inputEl.closest('tr');
+            if (row) {
+                const rateInput = row.querySelector('.item-rate');
+                if (rateInput) {
+                    rateInput.value = productRate;
+                }
+                recalcItemTotal(row.id);
+            }
+            
+            const dropdown = inputEl.nextElementSibling;
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Dismiss product suggestions when clicking outside
+        document.addEventListener('click', e => {
+            if (!e.target.classList.contains('item-name')) {
+                document.querySelectorAll('.product-suggestions-dropdown').forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+            }
+        });
 
         function toggleGstSupport() {
             const type = document.getElementById('gstType').value;
@@ -2705,6 +2892,52 @@
 
         function showUtilityModal() {
             openModal('utilitiesModal');
+        }
+
+        function showAddCustomerModal() {
+            document.getElementById('acName').value = "";
+            document.getElementById('acPhone').value = "";
+            document.getElementById('acAddress').value = "";
+            document.getElementById('acGst').value = "";
+            openModal('addCustomerModal');
+        }
+
+        async function saveCustomerAccount() {
+            const name = document.getElementById('acName').value.trim();
+            const phone = document.getElementById('acPhone').value.trim().replace(/\D/g, '');
+            const address = document.getElementById('acAddress').value.trim();
+            const gst = document.getElementById('acGst').value.trim().toUpperCase();
+
+            if (!name) {
+                showToast("Please enter Customer Name.", "error");
+                return;
+            }
+            if (!phone || phone.length < 10) {
+                showToast("Please enter a valid 10-digit Phone Number.", "error");
+                return;
+            }
+
+            try {
+                if (allCustomers && allCustomers[phone]) {
+                    const confirmOverwrite = confirm(`A customer with phone ${phone} (${allCustomers[phone].name}) already exists. Do you want to update their details?`);
+                    if (!confirmOverwrite) return;
+                }
+
+                await db.ref(`customers/${phone}`).update({
+                    name: name,
+                    phone: phone,
+                    address: address,
+                    gst: gst,
+                    lastBillingDate: (allCustomers && allCustomers[phone] && allCustomers[phone].lastBillingDate) ? allCustomers[phone].lastBillingDate : null
+                });
+
+                await syncCustomerLedgerTotals(phone);
+
+                showToast(`Customer account for "${name}" saved successfully.`, "success");
+                closeModal('addCustomerModal');
+            } catch (err) {
+                showToast("Failed to save customer account: " + err.message, "error");
+            }
         }
     </script>
 </body>
