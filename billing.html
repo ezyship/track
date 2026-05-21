@@ -807,6 +807,7 @@
         <a href="uploads.html">📸 Upload Tracking</a>
         <a href="search.html">🔎 Search Photos</a>
         <a href="billing.html" class="on">🧾 Billing</a>
+        <a href="online-excel.html">📊 Online Excel</a>
         <a href="#" onclick="handleLogout(event)" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.08);">🚪 Logout</a>
     </nav>
 
@@ -1165,6 +1166,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button class="btn btn-danger" onclick="deleteCustomerAccount()" style="margin-right: auto; background: var(--danger);">🗑️ Delete Customer</button>
                 <button class="btn btn-success" onclick="exportCustomerLedgerExcel()">📊 Export Ledger Excel</button>
                 <button class="btn btn-s" onclick="closeModal('customerLedgerModal')">Close</button>
             </div>
@@ -1697,6 +1699,10 @@
             const suggestions = document.getElementById('phone-suggestions');
             suggestions.innerHTML = '';
             
+            if (val.length === 10) {
+                checkForPendingBill(val);
+            }
+
             if (val.length < 3) {
                 suggestions.style.display = 'none';
                 return;
@@ -1720,10 +1726,41 @@
                     document.getElementById('customerGst').value = c.gst || '';
                     suggestions.style.display = 'none';
                     showToast("Customer details auto-filled.", "info");
+                    checkForPendingBill(phone);
                 };
                 suggestions.appendChild(div);
             });
             suggestions.style.display = 'block';
+        }
+
+        function checkForPendingBill(phone) {
+            if (!phone || !allBills) return;
+            const customerBills = Object.entries(allBills).filter(([key, b]) => {
+                return b.customerPhone === phone && b.status !== 'cancelled' && (b.status === 'unpaid' || b.status === 'partial');
+            });
+            if (customerBills.length > 0) {
+                // Sort by date desc
+                customerBills.sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
+                const [billId, bill] = customerBills[0];
+                if (editingBillId !== billId) {
+                    loadBillForEditing(billId);
+                    showToast(`Pending invoice ${bill.invoiceNo} loaded automatically. You can now add/append items to it!`, "success");
+                }
+            } else {
+                if (editingBillId) {
+                    const loadedBill = allBills[editingBillId];
+                    if (loadedBill && loadedBill.customerPhone !== phone) {
+                        clearBillScreen();
+                        const c = allCustomers[phone];
+                        if (c) {
+                            document.getElementById('customerPhone').value = phone;
+                            document.getElementById('customerName').value = c.name;
+                            document.getElementById('customerAddress').value = c.address || '';
+                            document.getElementById('customerGst').value = c.gst || '';
+                        }
+                    }
+                }
+            }
         }
 
         // Dismiss autocomplete when clicking outside
@@ -2532,6 +2569,23 @@
             filterAndLoadLedgerTable();
 
             openModal('customerLedgerModal');
+        }
+
+        async function deleteCustomerAccount() {
+            if (!selectedCustomerPhoneForLedger) return;
+            const phone = selectedCustomerPhoneForLedger;
+            const customer = allCustomers[phone];
+            if (!customer) return;
+
+            if (confirm(`Are you sure you want to delete the customer account for "${customer.name}" (${phone})? This cannot be undone. Historical invoices will remain in the database.`)) {
+                try {
+                    await db.ref(`customers/${phone}`).remove();
+                    showToast(`Customer account for "${customer.name}" deleted successfully.`, "success");
+                    closeModal('customerLedgerModal');
+                } catch (err) {
+                    showToast("Failed to delete customer: " + err.message, "error");
+                }
+            }
         }
 
         function handleLedgerDateFilterChange() {

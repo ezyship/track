@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Excel Spreadsheet - Ezyship Billing</title>
+    <style id="auth-guard-style">body { display: none !important; }</style>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>enforceAuth();</script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0a0f1e;
+            --card: rgba(30, 41, 59, 0.65);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59, 130, 246, 0.15), transparent),
+                radial-gradient(ellipse 60% 50% at 80% 110%, rgba(139, 92, 246, 0.15), transparent);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 28px 20px 60px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: clamp(1.6rem, 4vw, 2.6rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 6px;
+        }
+
+        nav {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #93c5fd;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 9px 20px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 50px;
+            background: rgba(59, 130, 246, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        nav a:hover,
+        nav a.on {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.7);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+            color: white;
+        }
+
+        .excel-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .excel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 16px;
+            padding-left: 36px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.88rem;
+            width: 260px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .filter-select {
+            padding: 10px 14px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.88rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+            transition: all 0.2s;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+        }
+
+        .grid-wrapper {
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.25);
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        .excel-table th {
+            position: sticky;
+            top: 0;
+            background: #1e293b;
+            color: var(--muted);
+            font-weight: 600;
+            padding: 12px 16px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            user-select: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .excel-table th:hover {
+            background: #334155;
+            color: white;
+        }
+
+        .excel-table th.sorted-asc::after {
+            content: " ▲";
+            font-size: 0.7rem;
+        }
+
+        .excel-table th.sorted-desc::after {
+            content: " ▼";
+            font-size: 0.7rem;
+        }
+
+        .excel-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid rgba(255, 255, 255, 0.03);
+            color: #e2e8f0;
+            white-space: nowrap;
+        }
+
+        .excel-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+            color: white;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge.paid { background: rgba(16, 185, 129, 0.15); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.25); }
+        .badge.unpaid { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.25); }
+        .badge.partial { background: rgba(245, 158, 11, 0.15); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.25); }
+        .badge.cancelled { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.25); }
+
+        .summary-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 24px;
+            margin-top: 20px;
+            font-size: 0.92rem;
+            background: rgba(15, 23, 42, 0.3);
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .summary-item strong {
+            color: white;
+            font-size: 1rem;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+            z-index: 10000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #toast.success { background: rgba(16, 185, 129, 0.95); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
+        #toast.error { background: rgba(239, 68, 68, 0.95); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3); }
+        #toast.info { background: rgba(59, 130, 246, 0.95); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Mobile Responsiveness Media Queries */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px 10px 40px;
+            }
+
+            header p {
+                font-size: 0.8rem;
+            }
+
+            nav {
+                gap: 8px;
+                margin-bottom: 20px;
+            }
+
+            nav a {
+                padding: 7px 14px;
+                font-size: 0.8rem;
+            }
+
+            .excel-container {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .excel-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding-bottom: 16px;
+                margin-bottom: 16px;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 4px;
+                border-radius: 8px;
+            }
+
+            .tab-btn {
+                flex: 1 1 auto;
+                justify-content: center;
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .search-box input {
+                width: 100%;
+                font-size: 0.85rem;
+            }
+
+            .filter-select {
+                width: 100%;
+                font-size: 0.85rem;
+            }
+
+            .btn-export {
+                width: 100%;
+                justify-content: center;
+                font-size: 0.85rem;
+                padding: 11px 16px;
+            }
+
+            .grid-wrapper {
+                max-height: 50vh;
+                border-radius: 8px;
+            }
+
+            .excel-table {
+                font-size: 0.8rem;
+            }
+
+            .excel-table th, 
+            .excel-table td {
+                padding: 8px 12px;
+            }
+
+            .summary-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                font-size: 0.85rem;
+                padding: 12px 16px;
+            }
+
+            .summary-item {
+                display: flex;
+                justify-content: space-between;
+                border-left: none !important;
+                padding-left: 0 !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                padding-bottom: 8px;
+            }
+
+            .summary-item:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📊 Online Excel spreadsheet</h1>
+        <p>Real-time interactive dashboard. Inspect details, apply dynamic filters, sort records, and export to spreadsheet.</p>
+    </header>
+
+    <nav>
+        <a href="prints/index.html">📄 Labels</a>
+        <a href="prints/scanner.html">🔍 Scanner</a>
+        <a href="prints/dispatched.html">📋 Dispatched</a>
+        <a href="uploads.html">📸 Upload Tracking</a>
+        <a href="search.html">🔎 Search Photos</a>
+        <a href="billing.html">🧾 Billing</a>
+        <a href="online-excel.html" class="on">📊 Online Excel</a>
+        <a href="#" onclick="handleLogout(event)" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.08);">🚪 Logout</a>
+    </nav>
+
+    <div class="excel-container">
+        <div class="excel-header">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('invoices')">🧾 Invoices Sheet</button>
+                <button class="tab-btn" onclick="switchTab('customers')">👥 Customers Sheet</button>
+                <button class="tab-btn" onclick="switchTab('items')">📦 Line Items Sheet</button>
+            </div>
+
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="excelSearch" placeholder="Search spreadsheet..." onkeyup="handleFilterChange()">
+                </div>
+                <select id="statusFilter" class="filter-select" onchange="handleFilterChange()">
+                    <option value="all">All Statuses</option>
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="partial">Partial Paid</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <button class="btn-export" onclick="exportFilteredDataToExcel()">🟢 Export Spreadsheet</button>
+            </div>
+        </div>
+
+        <div class="grid-wrapper">
+            <table class="excel-table" id="excelTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="summary-bar" id="summaryBar">
+            <!-- Dynamic totals -->
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const db = firebaseDb;
+        let allBills = {};
+        let allCustomers = {};
+        let currentTab = 'invoices';
+        let sortColumn = null;
+        let sortDirection = 'asc';
+
+        let filteredRows = [];
+
+        // Real-time synchronization
+        if (db) {
+            db.ref('bills').on('value', snap => {
+                allBills = snap.val() || {};
+                renderSpreadsheet();
+            });
+
+            db.ref('customers').on('value', snap => {
+                allCustomers = snap.val() || {};
+                if (currentTab === 'customers') {
+                    renderSpreadsheet();
+                }
+            });
+        } else {
+            showToast("Database connection not initialized.", "error");
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const index = tab === 'invoices' ? 0 : (tab === 'customers' ? 1 : 2);
+            document.querySelectorAll('.tab-btn')[index].classList.add('active');
+
+            const statusFilter = document.getElementById('statusFilter');
+            if (tab === 'customers') {
+                statusFilter.style.display = 'none';
+            } else {
+                statusFilter.style.display = 'block';
+            }
+
+            // Reset sorting
+            sortColumn = null;
+            sortDirection = 'asc';
+
+            renderSpreadsheet();
+        }
+
+        function handleFilterChange() {
+            renderSpreadsheet();
+        }
+
+        function getFilteredData() {
+            const searchVal = document.getElementById('excelSearch').value.toLowerCase().trim();
+            const statusVal = document.getElementById('statusFilter').value;
+
+            let rows = [];
+
+            if (currentTab === 'invoices') {
+                rows = Object.entries(allBills).map(([key, b]) => ({
+                    id: key,
+                    invoiceNo: b.invoiceNo || 'N/A',
+                    date: b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A',
+                    customerName: b.customerName || 'N/A',
+                    customerPhone: b.customerPhone || 'N/A',
+                    gstType: (b.gstType || 'non-gst').toUpperCase(),
+                    grandTotal: parseFloat(b.grandTotal) || 0,
+                    amountPaid: parseFloat(b.amountPaid) || 0,
+                    amountPending: parseFloat(b.amountPending) || 0,
+                    status: b.status || 'unpaid',
+                    notes: b.notes || '',
+                    rawDate: b.createdAt ? new Date(b.createdAt).getTime() : 0
+                }));
+
+                // Apply filters
+                rows = rows.filter(r => {
+                    const matchesSearch = r.invoiceNo.toLowerCase().includes(searchVal) ||
+                                          r.customerName.toLowerCase().includes(searchVal) ||
+                                          r.customerPhone.includes(searchVal) ||
+                                          r.notes.toLowerCase().includes(searchVal);
+                    
+                    const matchesStatus = statusVal === 'all' || r.status === statusVal;
+
+                    return matchesSearch && matchesStatus;
+                });
+            } else if (currentTab === 'customers') {
+                rows = Object.entries(allCustomers).map(([phone, c]) => ({
+                    phone: phone,
+                    name: c.name || 'N/A',
+                    address: c.address || 'N/A',
+                    gstin: c.gst || 'N/A',
+                    totalBusiness: parseFloat(c.totalBusiness) || 0,
+                    remainingBalance: parseFloat(c.remainingBalance) || 0,
+                    lastBillingDate: c.lastBillingDate ? new Date(c.lastBillingDate).toLocaleDateString() : 'N/A',
+                    rawDate: c.lastBillingDate ? new Date(c.lastBillingDate).getTime() : 0
+                }));
+
+                rows = rows.filter(r => {
+                    return r.name.toLowerCase().includes(searchVal) ||
+                           r.phone.includes(searchVal) ||
+                           r.address.toLowerCase().includes(searchVal) ||
+                           r.gstin.toLowerCase().includes(searchVal);
+                });
+            } else if (currentTab === 'items') {
+                // Flatten items
+                Object.entries(allBills).forEach(([key, b]) => {
+                    const billDate = b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A';
+                    const rawDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    if (b.items && b.items.length > 0) {
+                        b.items.forEach(item => {
+                            rows.push({
+                                invoiceNo: b.invoiceNo || 'N/A',
+                                date: billDate,
+                                customerName: b.customerName || 'N/A',
+                                customerPhone: b.customerPhone || 'N/A',
+                                productName: item.productName || 'Order Item',
+                                quantity: parseFloat(item.quantity) || 0,
+                                rate: parseFloat(item.rate) || 0,
+                                total: parseFloat(item.total) || 0,
+                                status: b.status || 'unpaid',
+                                rawDate: rawDate
+                            });
+                        });
+                    }
+                });
+
+                rows = rows.filter(r => {
+                    const matchesSearch = r.invoiceNo.toLowerCase().includes(searchVal) ||
+                                          r.customerName.toLowerCase().includes(searchVal) ||
+                                          r.customerPhone.includes(searchVal) ||
+                                          r.productName.toLowerCase().includes(searchVal);
+
+                    const matchesStatus = statusVal === 'all' || r.status === statusVal;
+
+                    return matchesSearch && matchesStatus;
+                });
+            }
+
+            // Apply sorting
+            if (sortColumn) {
+                rows.sort((a, b) => {
+                    let valA = a[sortColumn];
+                    let valB = b[sortColumn];
+
+                    if (sortColumn === 'date' || sortColumn === 'lastBillingDate') {
+                        valA = a.rawDate;
+                        valB = b.rawDate;
+                    }
+
+                    if (typeof valA === 'string') {
+                        return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    } else {
+                        return sortDirection === 'asc' ? valA - valB : valB - valA;
+                    }
+                });
+            }
+
+            return rows;
+        }
+
+        function renderSpreadsheet() {
+            filteredRows = getFilteredData();
+
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            const summary = document.getElementById('summaryBar');
+
+            head.innerHTML = "";
+            body.innerHTML = "";
+            summary.innerHTML = "";
+
+            if (currentTab === 'invoices') {
+                // Table Head
+                head.innerHTML = `
+                    <tr>
+                        <th onclick="handleSort('invoiceNo')">Invoice No</th>
+                        <th onclick="handleSort('date')">Date</th>
+                        <th onclick="handleSort('customerName')">Customer Name</th>
+                        <th onclick="handleSort('customerPhone')">Phone</th>
+                        <th onclick="handleSort('gstType')">Billing Type</th>
+                        <th onclick="handleSort('grandTotal')">Grand Total</th>
+                        <th onclick="handleSort('amountPaid')">Amt Paid</th>
+                        <th onclick="handleSort('amountPending')">Amt Pending</th>
+                        <th onclick="handleSort('status')">Status</th>
+                        <th onclick="handleSort('notes')">Notes</th>
+                    </tr>
+                `;
+
+                // Set sorted indicators
+                updateSortClass();
+
+                // Table Body
+                if (filteredRows.length === 0) {
+                    body.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 24px; color: var(--muted);">No invoices matches the search criteria.</td></tr>`;
+                } else {
+                    filteredRows.forEach(r => {
+                        const tr = document.createElement('tr');
+                        tr.style.cursor = 'pointer';
+                        tr.title = "Click to open in billing panel";
+                        tr.onclick = () => {
+                            window.location.href = `billing.html?edit=${r.invoiceNo}`;
+                        };
+                        tr.innerHTML = `
+                            <td><strong>${r.invoiceNo}</strong></td>
+                            <td>${r.date}</td>
+                            <td>${r.customerName}</td>
+                            <td>${r.customerPhone}</td>
+                            <td>${r.gstType}</td>
+                            <td>₹${r.grandTotal.toFixed(2)}</td>
+                            <td>₹${r.amountPaid.toFixed(2)}</td>
+                            <td style="color:${r.amountPending > 0 ? 'var(--danger)' : 'var(--muted)'}">₹${r.amountPending.toFixed(2)}</td>
+                            <td><span class="badge ${r.status}">${r.status}</span></td>
+                            <td><span style="font-size:0.8rem; color:var(--muted);">${r.notes}</span></td>
+                        `;
+                        body.appendChild(tr);
+                    });
+                }
+
+                // Summary
+                const totalSales = filteredRows.reduce((sum, r) => r.status !== 'cancelled' ? sum + r.grandTotal : sum, 0);
+                const totalPaid = filteredRows.reduce((sum, r) => r.status !== 'cancelled' ? sum + r.amountPaid : sum, 0);
+                const totalOutstanding = filteredRows.reduce((sum, r) => r.status !== 'cancelled' ? sum + r.amountPending : sum, 0);
+
+                summary.innerHTML = `
+                    <div class="summary-item">Sales: <strong style="color:var(--success)">₹${totalSales.toFixed(2)}</strong></div>
+                    <div class="summary-item">Received: <strong style="color:#60a5fa">₹${totalPaid.toFixed(2)}</strong></div>
+                    <div class="summary-item">Outstanding: <strong style="color:var(--danger)">₹${totalOutstanding.toFixed(2)}</strong></div>
+                    <div class="summary-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left:20px;">Count: <strong>${filteredRows.length}</strong></div>
+                `;
+
+            } else if (currentTab === 'customers') {
+                // Table Head
+                head.innerHTML = `
+                    <tr>
+                        <th onclick="handleSort('name')">Customer Name</th>
+                        <th onclick="handleSort('phone')">Phone</th>
+                        <th onclick="handleSort('address')">Shipping Address</th>
+                        <th onclick="handleSort('gstin')">GSTIN</th>
+                        <th onclick="handleSort('totalBusiness')">Total Business Done</th>
+                        <th onclick="handleSort('remainingBalance')">Outstanding Balance</th>
+                        <th onclick="handleSort('lastBillingDate')">Last Billing Date</th>
+                    </tr>
+                `;
+
+                updateSortClass();
+
+                // Table Body
+                if (filteredRows.length === 0) {
+                    body.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--muted);">No customers found.</td></tr>`;
+                } else {
+                    filteredRows.forEach(r => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${r.name}</strong></td>
+                            <td>${r.phone}</td>
+                            <td>${r.address}</td>
+                            <td>${r.gstin}</td>
+                            <td style="color:var(--success)">₹${r.totalBusiness.toFixed(2)}</td>
+                            <td style="color:${r.remainingBalance > 0 ? 'var(--danger)' : 'var(--muted)'}">₹${r.remainingBalance.toFixed(2)}</td>
+                            <td>${r.lastBillingDate}</td>
+                        `;
+                        body.appendChild(tr);
+                    });
+                }
+
+                // Summary
+                const totalOutstanding = filteredRows.reduce((sum, r) => sum + r.remainingBalance, 0);
+                const totalSales = filteredRows.reduce((sum, r) => sum + r.totalBusiness, 0);
+
+                summary.innerHTML = `
+                    <div class="summary-item">Total Directory Business: <strong style="color:var(--success)">₹${totalSales.toFixed(2)}</strong></div>
+                    <div class="summary-item">Total Outstanding: <strong style="color:var(--danger)">₹${totalOutstanding.toFixed(2)}</strong></div>
+                    <div class="summary-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left:20px;">Directory Customers: <strong>${filteredRows.length}</strong></div>
+                `;
+
+            } else if (currentTab === 'items') {
+                // Table Head
+                head.innerHTML = `
+                    <tr>
+                        <th onclick="handleSort('invoiceNo')">Invoice No</th>
+                        <th onclick="handleSort('date')">Date</th>
+                        <th onclick="handleSort('customerName')">Customer Name</th>
+                        <th onclick="handleSort('customerPhone')">Phone</th>
+                        <th onclick="handleSort('productName')">Product / Item Name</th>
+                        <th onclick="handleSort('quantity')">Quantity</th>
+                        <th onclick="handleSort('rate')">Rate</th>
+                        <th onclick="handleSort('total')">Total</th>
+                        <th onclick="handleSort('status')">Invoice Status</th>
+                    </tr>
+                `;
+
+                updateSortClass();
+
+                // Table Body
+                if (filteredRows.length === 0) {
+                    body.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 24px; color: var(--muted);">No items matched search.</td></tr>`;
+                } else {
+                    filteredRows.forEach(r => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${r.invoiceNo}</strong></td>
+                            <td>${r.date}</td>
+                            <td>${r.customerName}</td>
+                            <td>${r.customerPhone}</td>
+                            <td>${r.productName}</td>
+                            <td>${r.quantity}</td>
+                            <td>₹${r.rate.toFixed(2)}</td>
+                            <td><strong>₹${r.total.toFixed(2)}</strong></td>
+                            <td><span class="badge ${r.status}">${r.status}</span></td>
+                        `;
+                        body.appendChild(tr);
+                    });
+                }
+
+                // Summary
+                const totalItemsQty = filteredRows.reduce((sum, r) => r.status !== 'cancelled' ? sum + r.quantity : sum, 0);
+                const totalItemsAmount = filteredRows.reduce((sum, r) => r.status !== 'cancelled' ? sum + r.total : sum, 0);
+
+                summary.innerHTML = `
+                    <div class="summary-item">Total Items Sold: <strong style="color:#60a5fa">${totalItemsQty} qty</strong></div>
+                    <div class="summary-item">Total Value: <strong style="color:var(--success)">₹${totalItemsAmount.toFixed(2)}</strong></div>
+                    <div class="summary-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left:20px;">Rows: <strong>${filteredRows.length}</strong></div>
+                `;
+            }
+        }
+
+        function handleSort(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            renderSpreadsheet();
+        }
+
+        function updateSortClass() {
+            setTimeout(() => {
+                const ths = document.querySelectorAll('.excel-table th');
+                ths.forEach(th => {
+                    th.classList.remove('sorted-asc', 'sorted-desc');
+                    const onclickAttr = th.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(`'${sortColumn}'`)) {
+                        th.classList.add(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                    }
+                });
+            }, 50);
+        }
+
+        function exportFilteredDataToExcel() {
+            if (filteredRows.length === 0) {
+                showToast("No data to export.", "error");
+                return;
+            }
+
+            let dataToExport = [];
+            let sheetName = "";
+
+            if (currentTab === 'invoices') {
+                sheetName = "Invoices Database";
+                dataToExport = filteredRows.map(r => ({
+                    "Invoice No": r.invoiceNo,
+                    "Date": r.date,
+                    "Customer Name": r.customerName,
+                    "Customer Phone": r.customerPhone,
+                    "Billing Type": r.gstType,
+                    "Grand Total (INR)": r.grandTotal,
+                    "Amount Paid (INR)": r.amountPaid,
+                    "Amount Pending (INR)": r.amountPending,
+                    "Payment Status": r.status.toUpperCase(),
+                    "Notes": r.notes
+                }));
+            } else if (currentTab === 'customers') {
+                sheetName = "Customers Ledger";
+                dataToExport = filteredRows.map(r => ({
+                    "Customer Name": r.name,
+                    "Customer Phone": r.phone,
+                    "Shipping Address": r.address,
+                    "GSTIN": r.gstin,
+                    "Total Sales Vol (INR)": r.totalBusiness,
+                    "Outstanding Balance (INR)": r.remainingBalance,
+                    "Last Transaction Date": r.lastBillingDate
+                }));
+            } else if (currentTab === 'items') {
+                sheetName = "Line Items Details";
+                dataToExport = filteredRows.map(r => ({
+                    "Invoice No": r.invoiceNo,
+                    "Date": r.date,
+                    "Customer Name": r.customerName,
+                    "Customer Phone": r.customerPhone,
+                    "Product / Item Name": r.productName,
+                    "Quantity": r.quantity,
+                    "Rate (INR)": r.rate,
+                    "Total Price (INR)": r.total,
+                    "Invoice Status": r.status.toUpperCase()
+                }));
+            }
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            
+            const filename = `${sheetName.replace(/\s+/g, '_')}_Filtered_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            showToast("Spreadsheet downloaded successfully!", "success");
+        }
+
+        function showToast(msg, type = "info") {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'show ' + type;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
