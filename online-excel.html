@@ -707,6 +707,12 @@
                 padding-bottom: 0;
             }
         }
+
+        @media (max-width: 600px) {
+            .modal-controls-section > div {
+                grid-template-columns: 1fr !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -843,6 +849,58 @@
                         <span id="mAmountPending"></span>
                     </div>
                 </div>
+
+                <!-- GST Download Option & Payment Status Modifier -->
+                <div class="modal-controls-section" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                    <h3 style="margin-bottom: 12px; font-size: 0.95rem; color: #93c5fd; font-weight: 600; display: flex; align-items: center; gap: 6px;">⚙️ Payment Settings & Excel Options</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        
+                        <!-- Change Payment Status Block -->
+                        <div class="control-box" style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 6px;">
+                            <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Update Payment Status</span>
+                            
+                            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                                <div style="flex: 1;">
+                                    <label for="mEditStatus" style="font-size: 0.65rem; color: #64748b; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px;">Status</label>
+                                    <select id="mEditStatus" onchange="onModalStatusChange()" style="width: 100%; padding: 6px 10px; background: rgba(15, 23, 42, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.8rem; outline: none; cursor: pointer;">
+                                        <option value="paid">Paid</option>
+                                        <option value="unpaid">Unpaid</option>
+                                        <option value="partial">Partial Paid</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1;">
+                                    <label for="mEditAmountPaid" style="font-size: 0.65rem; color: #64748b; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px;">Paid (₹)</label>
+                                    <input type="number" id="mEditAmountPaid" oninput="onModalAmountPaidInput()" min="0" style="width: 100%; padding: 6px 10px; background: rgba(15, 23, 42, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.8rem; outline: none;">
+                                </div>
+                            </div>
+                            
+                            <button onclick="updateBillPaymentStatus()" style="margin-top: 8px; padding: 7px 12px; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.78rem; transition: all 0.2s; text-align: center;">💾 Save Payment Status</button>
+                        </div>
+
+                        <!-- Apply GST Download Block -->
+                        <div class="control-box" style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 6px;">
+                            <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Excel GST Option</span>
+                            
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: #f1f5f9; cursor: pointer; margin: 4px 0; user-select: none;">
+                                <input type="checkbox" id="mApplyGstDownload" onchange="toggleGstDownloadInputs()" style="cursor: pointer; width: 15px; height: 15px;">
+                                Apply 5% GST on Excel
+                            </label>
+                            
+                            <div id="mGstDownloadDetails" style="display: none; flex-direction: column; gap: 6px;">
+                                <div>
+                                    <label for="mGstFirmName" style="font-size: 0.65rem; color: #64748b; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px;">Firm / Customer Name</label>
+                                    <input type="text" id="mGstFirmName" style="width: 100%; padding: 5px 8px; background: rgba(15, 23, 42, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.78rem; outline: none;">
+                                </div>
+                                <div>
+                                    <label for="mGstNumber" style="font-size: 0.65rem; color: #64748b; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px;">GSTIN / GST No</label>
+                                    <input type="text" id="mGstNumber" placeholder="e.g. 07AAAAA1111A1Z1" style="width: 100%; padding: 5px 8px; background: rgba(15, 23, 42, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.78rem; outline: none;">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
             <div class="modal-footer">
                 <button class="btn-download-bill" onclick="downloadSingleBillExcel()">🟢 Download Bill Excel</button>
@@ -1379,6 +1437,14 @@
             document.getElementById('mAmountPaid').textContent = '₹' + (parseFloat(bill.amountPaid) || 0).toFixed(2);
             document.getElementById('mAmountPending').textContent = '₹' + (parseFloat(bill.amountPending) || 0).toFixed(2);
 
+            // Populate modifiers
+            document.getElementById('mEditStatus').value = bill.status || 'unpaid';
+            document.getElementById('mEditAmountPaid').value = bill.amountPaid || 0;
+            document.getElementById('mApplyGstDownload').checked = false;
+            document.getElementById('mGstDownloadDetails').style.display = 'none';
+            document.getElementById('mGstFirmName').value = bill.customerName || '';
+            document.getElementById('mGstNumber').value = bill.customerGst || '';
+
             document.getElementById('viewBillModal').classList.add('open');
         }
 
@@ -1387,17 +1453,118 @@
             activeViewBillId = null;
         }
 
+        function toggleGstDownloadInputs() {
+            const applyGst = document.getElementById('mApplyGstDownload').checked;
+            document.getElementById('mGstDownloadDetails').style.display = applyGst ? 'flex' : 'none';
+        }
+
+        function onModalStatusChange() {
+            const status = document.getElementById('mEditStatus').value;
+            const amountPaidInput = document.getElementById('mEditAmountPaid');
+            const bill = allBills[activeViewBillId];
+            if (!bill) return;
+
+            if (status === 'paid') {
+                amountPaidInput.value = bill.grandTotal || 0;
+            } else if (status === 'unpaid') {
+                amountPaidInput.value = 0;
+            }
+        }
+
+        function onModalAmountPaidInput() {
+            const amountPaid = parseFloat(document.getElementById('mEditAmountPaid').value) || 0;
+            const editStatus = document.getElementById('mEditStatus');
+            const bill = allBills[activeViewBillId];
+            if (!bill) return;
+
+            if (amountPaid >= bill.grandTotal) {
+                editStatus.value = 'paid';
+            } else if (amountPaid === 0) {
+                editStatus.value = 'unpaid';
+            } else {
+                editStatus.value = 'partial';
+            }
+        }
+
+        async function updateBillPaymentStatus() {
+            if (!activeViewBillId) return;
+            const bill = allBills[activeViewBillId];
+            if (!bill) return;
+
+            const newStatus = document.getElementById('mEditStatus').value;
+            const newAmountPaid = parseFloat(document.getElementById('mEditAmountPaid').value) || 0;
+            const newAmountPending = Math.max(0, parseFloat(bill.grandTotal || 0) - newAmountPaid);
+            const savedDate = new Date().toISOString();
+
+            try {
+                await db.ref('bills/' + activeViewBillId).update({
+                    status: newStatus,
+                    amountPaid: newAmountPaid,
+                    amountPending: newAmountPending,
+                    paymentTimestamp: newStatus === 'paid' ? savedDate : (bill.paymentTimestamp || null),
+                    updatedAt: savedDate
+                });
+
+                if (bill.customerPhone) {
+                    await syncCustomerLedgerTotalsInViewer(bill.customerPhone);
+                }
+
+                showToast("Payment status updated successfully!", "success");
+
+                setTimeout(() => {
+                    if (activeViewBillId) {
+                        viewBillDetails(activeViewBillId);
+                    }
+                }, 100);
+
+            } catch (err) {
+                showToast("Failed to update status: " + err.message, "error");
+            }
+        }
+
+        async function syncCustomerLedgerTotalsInViewer(phone) {
+            if (typeof db === 'undefined' || !db) return;
+            const billsSnap = await db.ref('bills').orderByChild('customerPhone').equalTo(phone).once('value');
+            
+            let totalBusiness = 0;
+            let remainingBalance = 0;
+            let lastDate = 0;
+
+            if (billsSnap.exists()) {
+                Object.values(billsSnap.val()).forEach(function(b) {
+                    if (b.status !== 'cancelled') {
+                        totalBusiness += parseFloat(b.grandTotal) || 0;
+                        remainingBalance += parseFloat(b.amountPending) || 0;
+                    }
+                    const bTime = new Date(b.createdAt).getTime();
+                    if (!isNaN(bTime) && bTime > lastDate) {
+                        lastDate = bTime;
+                    }
+                });
+            }
+
+            await db.ref('customers/' + phone).update({
+                totalBusiness: totalBusiness,
+                remainingBalance: remainingBalance,
+                lastBillingDate: lastDate > 0 ? new Date(lastDate).toISOString() : null
+            });
+        }
+
         function downloadSingleBillExcel() {
             if (!activeViewBillId) return;
             const bill = allBills[activeViewBillId];
             if (!bill) return;
 
+            const applyGst = document.getElementById('mApplyGstDownload').checked;
+            const firmName = applyGst ? (document.getElementById('mGstFirmName').value.trim() || bill.customerName || 'N/A') : (bill.customerName || 'N/A');
+            const gstin = applyGst ? (document.getElementById('mGstNumber').value.trim() || bill.customerGst || 'N/A') : (bill.customerGst || 'N/A');
+
             const sheetData = [];
 
             sheetData.push(["INVOICE DETAILS", "", "", "", ""]);
             sheetData.push(["Invoice No:", bill.invoiceNo || 'N/A', "", "Date:", bill.createdAt ? new Date(bill.createdAt).toLocaleDateString() : 'N/A']);
-            sheetData.push(["Customer Name:", bill.customerName || 'N/A', "", "Phone:", bill.customerPhone || 'N/A']);
-            sheetData.push(["Shipping Address:", bill.customerAddress || 'N/A', "", "GSTIN:", bill.customerGst || 'N/A']);
+            sheetData.push(["Customer/Firm Name:", firmName, "", "Phone:", bill.customerPhone || 'N/A']);
+            sheetData.push(["Shipping Address:", bill.customerAddress || 'N/A', "", "GSTIN:", gstin]);
             sheetData.push(["Payment Status:", (bill.status || 'unpaid').toUpperCase(), "", "", ""]);
             sheetData.push([]); 
 
@@ -1426,19 +1593,29 @@
 
             sheetData.push([]); 
 
-            sheetData.push(["", "", "", "Subtotal:", parseFloat(bill.subtotal || 0)]);
-            if (bill.gstType === 'gst' && parseFloat(bill.gstAmount) > 0) {
+            const subtotal = parseFloat(bill.subtotal || 0);
+            sheetData.push(["", "", "", "Subtotal:", subtotal]);
+
+            let finalGrandTotal = parseFloat(bill.grandTotal || 0);
+
+            if (applyGst) {
+                const gstAmount = subtotal * 0.05;
+                sheetData.push(["", "", "", "GST (5%):", gstAmount]);
+                finalGrandTotal = subtotal + gstAmount + parseFloat(bill.extraCharges || 0) - parseFloat(bill.discount || 0);
+            } else if (bill.gstType === 'gst' && parseFloat(bill.gstAmount) > 0) {
                 sheetData.push(["", "", "", `GST (${bill.gstPercent || 18}%):`, parseFloat(bill.gstAmount)]);
             }
+
             if (parseFloat(bill.extraCharges) > 0) {
                 sheetData.push(["", "", "", "Extra Charges:", parseFloat(bill.extraCharges)]);
             }
             if (parseFloat(bill.discount) > 0) {
                 sheetData.push(["", "", "", "Discount:", parseFloat(bill.discount)]);
             }
-            sheetData.push(["", "", "", "Grand Total:", parseFloat(bill.grandTotal || 0)]);
+
+            sheetData.push(["", "", "", "Grand Total:", finalGrandTotal]);
             sheetData.push(["", "", "", "Amount Paid:", parseFloat(bill.amountPaid || 0)]);
-            sheetData.push(["", "", "", "Amount Pending:", parseFloat(bill.amountPending || 0)]);
+            sheetData.push(["", "", "", "Amount Pending:", Math.max(0, finalGrandTotal - parseFloat(bill.amountPaid || 0))]);
 
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
             
@@ -1451,7 +1628,7 @@
             ];
 
             const wb = XLSX.utils.book_new();
-            const filename = `Invoice_${bill.invoiceNo || 'Bill'}_${bill.customerName.replace(/\s+/g, '_')}.xlsx`;
+            const filename = `Invoice_${bill.invoiceNo || 'Bill'}_${firmName.replace(/\s+/g, '_')}.xlsx`;
             XLSX.utils.book_append_sheet(wb, ws, "Invoice Details");
             XLSX.writeFile(wb, filename);
 
