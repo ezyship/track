@@ -284,22 +284,14 @@
             </button>
         </form>
 
-        <div class="setup-toggle" onclick="toggleChangePassword()">🔑 Change Password</div>
-
-        <div id="change-password-panel" class="setup-panel">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label for="change-email">Email Address</label>
-                <input type="email" id="change-email" placeholder="admin@example.com" style="padding: 10px 12px; font-size: 14px;">
-            </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label for="change-current-password">Current Password</label>
-                <input type="password" id="change-current-password" placeholder="Current Password" style="padding: 10px 12px; font-size: 14px;">
-            </div>
+        <div class="setup-toggle" onclick="toggleResetPanel()">🔑 Reset Password</div>
+ 
+        <div id="reset-password-panel" class="setup-panel">
             <div class="form-group" style="margin-bottom: 16px;">
-                <label for="change-new-password">New Password</label>
-                <input type="password" id="change-new-password" placeholder="New Password" style="padding: 10px 12px; font-size: 14px;">
+                <label for="reset-email">Email Address</label>
+                <input type="email" id="reset-email" placeholder="admin@example.com" style="padding: 10px 12px; font-size: 14px;">
             </div>
-            <button class="btn-setup" onclick="handleChangePassword()">Update Password</button>
+            <button class="btn-setup" onclick="handleSendResetLink()">Send Reset Link</button>
         </div>
     </div>
 
@@ -362,51 +354,39 @@
             }
         }
 
-        function toggleChangePassword() {
-            const p = document.getElementById('change-password-panel');
+        function toggleResetPanel() {
+            const p = document.getElementById('reset-password-panel');
             p.style.display = (p.style.display === 'block') ? 'none' : 'block';
         }
 
-        async function handleChangePassword() {
+        async function handleSendResetLink() {
             if (!firebaseInitialized) {
                 showToast('Firebase is not initialized yet.', 'error');
                 return;
             }
 
-            const email = document.getElementById('change-email').value.trim();
-            const currentPassword = document.getElementById('change-current-password').value;
-            const newPassword = document.getElementById('change-new-password').value;
+            const email = document.getElementById('reset-email').value.trim();
 
-            if (!email || !currentPassword || !newPassword) {
-                showToast('Please fill in all fields.', 'error');
+            if (!email) {
+                showToast('Please enter your email address.', 'error');
                 return;
             }
 
-            if (newPassword.length < 6) {
-                showToast('New password must be at least 6 characters.', 'error');
-                return;
-            }
-
-            const btn = document.querySelector('#change-password-panel .btn-setup');
+            const btn = document.querySelector('#reset-password-panel .btn-setup');
             btn.disabled = true;
-            btn.textContent = 'Updating...';
+            btn.textContent = 'Sending...';
 
             try {
-                const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, currentPassword);
-                const user = userCredential.user;
-                await user.updatePassword(newPassword);
-                showToast('Password updated successfully!', 'success');
-
-                document.getElementById('change-email').value = '';
-                document.getElementById('change-current-password').value = '';
-                document.getElementById('change-new-password').value = '';
-                toggleChangePassword();
+                await firebaseAuth.sendPasswordResetEmail(email);
+                showToast('Password reset link sent to your email!', 'success');
+                document.getElementById('reset-email').value = '';
+                toggleResetPanel();
             } catch (err) {
                 console.error(err);
                 showToast(err.message, 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Update Password';
+                btn.textContent = 'Send Reset Link';
             }
         }
     </script>
