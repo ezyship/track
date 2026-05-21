@@ -63,3 +63,16 @@ function enforceAuth() {
         }
     });
 }
+
+// Global sign out helper
+async function handleLogout(e) {
+    if (e) e.preventDefault();
+    if (firebaseInitialized && firebaseAuth) {
+        try {
+            await firebaseAuth.signOut();
+        } catch (err) {
+            console.error("Sign out failed", err);
+        }
+    }
+    window.location.href = getLoginUrl();
+}
