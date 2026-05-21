@@ -1,11 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dispatched Log</title>
+    <style id="auth-guard-style">body { display: none !important; }</style>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="../firebase-config.js"></script>
+    <script>enforceAuth();</script>
+
     <style>
         :root {
             --primary: #3b82f6;
@@ -16,12 +25,14 @@
             --text-muted: #94a3b8;
             --border: rgba(255, 255, 255, 0.1);
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Outfit', sans-serif;
         }
+
         body {
             background-color: var(--bg);
             background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 40%),
@@ -33,6 +44,7 @@
             align-items: center;
             padding: 40px 20px;
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -42,12 +54,14 @@
             justify-content: space-between;
             align-items: center;
         }
+
         @media(max-width: 600px) {
             .header {
                 flex-direction: column;
                 gap: 15px;
             }
         }
+
         .header-title h1 {
             font-size: 2.5rem;
             font-weight: 700;
@@ -56,9 +70,11 @@
             -webkit-text-fill-color: transparent;
             margin-bottom: 5px;
         }
+
         .header-title p {
             color: var(--text-muted);
         }
+
         button.refresh-btn {
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
@@ -72,6 +88,7 @@
             align-items: center;
             gap: 8px;
         }
+
         .refresh-btn {
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
@@ -85,10 +102,12 @@
             gap: 8px;
             transition: all 0.2s;
         }
+
         button.refresh-btn:hover {
             background: rgba(59, 130, 246, 0.4);
             transform: translateY(-2px);
         }
+
         .glass-card {
             background: var(--card-bg);
             backdrop-filter: blur(16px);
@@ -101,11 +120,13 @@
             max-width: 1000px;
             overflow-x: auto;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             min-width: 600px;
         }
+
         th,
         td {
             padding: 14px 20px;
@@ -113,6 +134,7 @@
             border-bottom: 1px solid var(--border);
             vertical-align: top;
         }
+
         th {
             font-weight: 600;
             color: var(--text-muted);
@@ -120,23 +142,29 @@
             font-size: 0.85rem;
             letter-spacing: 0.5px;
         }
+
         tbody tr {
             transition: background 0.2s;
         }
+
         tbody tr:hover {
             background: rgba(255, 255, 255, 0.05);
         }
+
         td {
             font-size: 0.95rem;
         }
+
         .td-name {
             font-weight: 600;
             color: #f8fafc;
         }
+
         .td-time {
             color: #94a3b8;
             font-size: 0.85rem;
         }
+
         .td-status {
             display: inline-block;
             background: rgba(16, 185, 129, 0.2);
@@ -146,10 +174,12 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
+
         .search-container {
             margin-bottom: 20px;
             width: 100%;
         }
+
         .search-container input {
             width: 100%;
             padding: 12px 16px;
@@ -161,10 +191,12 @@
             outline: none;
             transition: all 0.3s ease;
         }
+
         .search-container input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
+
         .loading-state,
         .error-state,
         .empty-state {
@@ -172,6 +204,7 @@
             padding: 50px 20px;
             color: var(--text-muted);
         }
+
         .spinner {
             border: 3px solid rgba(255, 255, 255, 0.1);
             border-top: 3px solid #60a5fa;
@@ -181,14 +214,17 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 15px auto;
         }
+
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
         }
+
         nav {
             display: flex;
             gap: 10px;
@@ -198,6 +234,7 @@
             width: 100%;
             max-width: 1000px;
         }
+
         nav a {
             color: #60a5fa;
             text-decoration: none;
@@ -209,12 +246,14 @@
             transition: all .2s;
             font-size: .88rem;
         }
+
         nav a:hover,
         nav a.on {
             background: var(--primary);
             color: #fff;
             border-color: var(--primary);
         }
+
         @media(max-width: 600px) {
             body {
                 padding: 20px 15px;
@@ -237,6 +276,7 @@
                 text-align: center;
             }
         }
+
         /* Setup warning */
         .setup-warning {
             background: rgba(239, 68, 68, 0.1);
@@ -248,6 +288,7 @@
             font-size: 0.9rem;
             text-align: center;
         }
+
         .delete-btn {
             background: rgba(239, 68, 68, 0.2);
             color: #f87171;
@@ -259,10 +300,12 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
+
         .delete-btn:hover {
             background: rgba(239, 68, 68, 0.4);
             transform: translateY(-1px);
         }
+
         .track-btn {
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
@@ -277,11 +320,13 @@
             align-items: center;
             gap: 5px;
         }
+
         .track-btn:hover {
             background: rgba(59, 130, 246, 0.4);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -298,10 +343,12 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
+
         .modal-overlay.show {
             display: flex;
             opacity: 1;
         }
+
         .modal-content {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -316,9 +363,11 @@
             padding: 30px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
+
         .modal-overlay.show .modal-content {
             transform: scale(1);
         }
+
         .close-modal {
             position: absolute;
             top: 20px;
@@ -336,10 +385,12 @@
             font-size: 1.2rem;
             transition: all 0.2s;
         }
+
         .close-modal:hover {
             background: rgba(239, 68, 68, 0.3);
             color: #ef4444;
         }
+
         .tracking-photo {
             width: 100%;
             min-height: 150px;
@@ -355,16 +406,19 @@
             font-size: 0.9rem;
             overflow: hidden;
         }
+
         .tracking-status-title {
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 10px;
             color: #f8fafc;
         }
+
         .tracking-timeline {
             margin-top: 25px;
             position: relative;
         }
+
         .tracking-timeline::before {
             content: '';
             position: absolute;
@@ -374,11 +428,13 @@
             width: 2px;
             background: rgba(59, 130, 246, 0.2);
         }
+
         .timeline-item {
             position: relative;
             padding-left: 30px;
             margin-bottom: 20px;
         }
+
         .timeline-dot {
             position: absolute;
             left: 0;
@@ -390,25 +446,30 @@
             border: 3px solid var(--bg);
             z-index: 1;
         }
+
         .timeline-item.active .timeline-dot {
             background: #10b981;
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
+
         .timeline-content {
             display: flex;
             flex-direction: column;
         }
+
         .timeline-label {
             font-weight: 600;
             font-size: 0.95rem;
             color: #f1f5f9;
         }
+
         .timeline-time {
             font-size: 0.8rem;
             color: var(--text-muted);
         }
     </style>
 </head>
+
 <body>
     <nav>
         <a href="index.html">📄 Labels</a>
@@ -417,6 +478,7 @@
         <a href="../uploads.html">📸 Upload Tracking</a>
         <a href="../search.html">🔎 Search Photos</a>
     </nav>
+
     <div class="header">
         <div class="header-title">
             <h1>Dispatched Items</h1>
@@ -429,25 +491,31 @@
                 onclick="localStorage.removeItem('dispatchedCache');fetchData();">🗑 Clear Cache</button>
         </div>
     </div>
+
     <div class="glass-card">
         <div id="setup-warning" class="setup-warning" style="display: none;">
             <strong>Setup Required:</strong> You need to add your Google Web App URL in the dispatched.html file to
             fetch data.
         </div>
+
         <div class="search-container" id="search-container">
             <input type="text" id="searchInput" placeholder="🔍 Search customer by name or phone..."
                 onkeyup="filterTable()">
         </div>
+
         <div id="loading" class="loading-state">
             <div class="spinner"></div>
             <p>Fetching data from Google Sheets...</p>
         </div>
+
         <div id="error" class="error-state" style="display: none;">
             <p id="error-msg">Failed to load data. Please check your URL and try again.</p>
         </div>
+
         <div id="empty" class="empty-state" style="display: none;">
             <p>No dispatched items found. Try scanning a QR code first!</p>
         </div>
+
         <table id="data-table" style="display: none;">
             <thead>
                 <tr>
@@ -462,6 +530,9 @@
             </tbody>
         </table>
     </div>
+
+
+
     <script>
         // ========================================================================
         // ⚠️ IMPORTANT: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW ⚠️
@@ -472,8 +543,10 @@
         // --- GITHUB DEFAULT CONFIG (Fallbacks for cross-device photo viewing) ---
         const DEFAULT_GH_REPO = "ezyship/track";
         const DEFAULT_GH_BRANCH = "main";
+
         let _fullData = null;
         window._rowStore = []; // reset on every data render
+
         window.onload = function () {
             if (!GOOGLE_WEB_APP_URL || GOOGLE_WEB_APP_URL.trim() === "") {
                 document.getElementById('setup-warning').style.display = 'block';
@@ -482,13 +555,16 @@
             }
             fetchData();
         }
+
         function renderData(data, filterQuery = '') {
             if (!data) return;
             _fullData = data;
+
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
             window._rowStore = []; // Reset on each render
             const deletedOrders = JSON.parse(localStorage.getItem('deletedOrders') || '[]');
+
             // Filter in-memory
             const q = filterQuery.toLowerCase().trim();
             const filtered = data.filter(row => {
@@ -496,6 +572,7 @@
                 if (!row.timestamp && !row.name && !row.phone) return false;
                 // Skip deleted rows
                 if (deletedOrders.includes(row.timestamp)) return false;
+
                 if (q) {
                     const name = (row.name || '').toLowerCase();
                     const phone = (row.phone || '').toLowerCase();
@@ -506,21 +583,26 @@
                 }
                 return true;
             });
+
             if (filtered.length === 0) {
                 document.getElementById('empty').style.display = 'block';
                 document.getElementById('data-table').style.display = 'none';
                 return;
             }
+
             // Reverse to show newest first
             const reversedData = [...filtered].reverse();
+
             // Limit to most recent items to keep rendering super fast
             const limit = q ? 200 : 100;
             const slicedData = reversedData.slice(0, limit);
+
             slicedData.forEach(row => {
                 let dispAddress = row.address || row.Address || '';
                 let dispName = row.name || row.Name || '';
                 let dispPhone = row.phone || row.Phone || '';
                 let dispAwb = row.awb || row.AWB || '';
+
                 // Fallback: If phone is empty, try to extract it from the address string
                 if (!dispPhone && dispAddress) {
                     const phMatch = dispAddress.match(/\b(\d{5}\s\d{5}|\d{10})\b/);
@@ -528,10 +610,12 @@
                         dispPhone = phMatch[1].replace(/\s/g, '');
                     }
                 }
+
                 // Fallback: if address is empty, use name field
                 if (!dispAddress || dispAddress.trim() === '') {
                     dispAddress = dispName;
                 }
+
                 let displayDate = row.timestamp || 'N/A';
                 if (row.timestamp && row.timestamp !== 'N/A') {
                     let d = new Date(row.timestamp);
@@ -546,12 +630,15 @@
                         displayDate = row.timestamp; // already formatted
                     }
                 }
+
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-name', String(dispName).toLowerCase());
                 tr.setAttribute('data-phone', String(dispPhone).toLowerCase());
+
                 // Store row data for the modal to look up later
                 const rowIdx = window._rowStore.length;
                 window._rowStore.push({ phone: dispPhone, timestamp: row.timestamp || '', awb: dispAwb });
+
                 tr.innerHTML = `
                     <td class="td-time">${displayDate}</td>
                     <td><span class="td-status">Dispatched</span></td>
@@ -564,11 +651,14 @@
                 `;
                 tbody.appendChild(tr);
             });
+
             document.getElementById('empty').style.display = 'none';
             document.getElementById('data-table').style.display = 'table';
         }
+
         function fetchData() {
             if (!GOOGLE_WEB_APP_URL || GOOGLE_WEB_APP_URL.trim() === "") return;
+
             // Show cached data instantly while fresh data loads in background
             const cached = localStorage.getItem('dispatchedCache');
             if (cached) {
@@ -580,8 +670,10 @@
                     localStorage.removeItem('dispatchedCache');
                 }
             }
+
             document.getElementById('loading').style.display = cached ? 'none' : 'block';
             document.getElementById('error').style.display = 'none';
+
             // Google Apps Script supports CORS for GET — fetch works when deployed with "Anyone" access
             fetch(GOOGLE_WEB_APP_URL, {
                 method: 'GET',
@@ -618,16 +710,19 @@
                     }
                 });
         }
+
         function filterTable() {
             const input = document.getElementById("searchInput").value;
             renderData(_fullData, input);
         }
+
         function deleteOrder(timestamp) {
             if (confirm("Are you sure you want to delete this order?")) {
                 // Send delete request to Google Sheets
                 const formData = new URLSearchParams();
                 formData.append("action", "delete");
                 formData.append("timestamp", timestamp);
+
                 fetch(GOOGLE_WEB_APP_URL, {
                     method: "POST",
                     body: formData
@@ -661,10 +756,12 @@
                     });
             }
         }
+
         // ── Tracking Modal ──
         function openTracker(idx) {
             const row = window._rowStore[idx];
             if (!row) return;
+
             // Build modal HTML fresh each time
             let modal = document.getElementById('trackingModal');
             if (!modal) {
@@ -674,6 +771,7 @@
                 document.body.appendChild(modal);
                 modal.addEventListener('click', e => { if (e.target === modal) closeTracker(); });
             }
+
             modal.innerHTML = `
                 <div class="modal-content">
                     <button class="close-modal" onclick="closeTracker()">×</button>
@@ -697,10 +795,12 @@
                     </div>
                 </div>
             `;
+
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('show'), 10);
             loadTrackingData(row.phone, row.awb);
         }
+
         function closeTracker() {
             const modal = document.getElementById('trackingModal');
             if (modal) {
@@ -708,13 +808,16 @@
                 setTimeout(() => modal.style.display = 'none', 300);
             }
         }
+
         async function loadTrackingData(phone, awb) {
             const photoContainer = document.getElementById('modal-photo');
             const liveWrap = document.getElementById('live-track-btn-wrap');
             if (!photoContainer) return;
+
             // Sanitize stringified undefined/null values
             const cleanPhoneParam = (phone === 'undefined' || phone === 'null') ? '' : (phone || '');
             const cleanAwbParam = (awb === 'undefined' || awb === 'null') ? '' : (awb || '');
+
             // Normalize: strip spaces and non-digits, then get last 5 digits
             const cleanPhone = cleanPhoneParam.replace(/\D/g, '');
             const phoneLast5 = cleanPhone.slice(-5);
@@ -723,6 +826,7 @@
             
             // Primary lookup key is phone last 5. If missing, fallback to AWB last 5.
             const lookupKey = phoneLast5 || awbLast5;
+
             // Helper: check if a record's phone or awb last-5 matches the lookupKey
             function last5Match(recordPhone, recordAwb) {
                 if (!lookupKey || lookupKey.length < 4) return false; // Prevent empty matching everything
@@ -730,7 +834,9 @@
                 const rAwbClean = (recordAwb || '').replace(/\W/g, '').slice(-5);
                 return rPhoneClean === lookupKey || rAwbClean === lookupKey;
             }
+
             let foundRecord = null;
+
             // Always fetch GitHub records.json first to get AWB + photoUrl
             const cfg = JSON.parse(localStorage.getItem('ghTrackCfg') || '{}');
             if (!cfg.repo) {
@@ -741,36 +847,58 @@
             
             let githubRecords = [];
             let loaded = false;
-            if (cfg.token && cfg.repo) {
+
+            if (firebaseDb) {
                 try {
-                    const res = await fetch(
-                        `https://api.github.com/repos/${cfg.repo}/contents/records.json?ref=${cfg.branch || 'main'}&t=${Date.now()}`,
-                        { headers: { 'Authorization': 'token ' + cfg.token, 'Accept': 'application/vnd.github.v3+json' } }
-                    );
-                    if (res.ok) {
-                        const d = await res.json();
-                        const decoded = atob(d.content.replace(/\n/g, ''));
-                        githubRecords = decoded.trim() ? JSON.parse(decoded) : [];
-                        loaded = true;
+                    const snapshot = await firebaseDb.ref('records').once('value');
+                    const val = snapshot.val();
+                    if (val) {
+                        githubRecords = Array.isArray(val) ? val : Object.values(val);
                     }
-                } catch(e) { console.error('GitHub records.json fetch error:', e); }
+                    githubRecords = githubRecords.filter(r => r !== null && r !== undefined);
+                    loaded = true;
+                } catch (e) {
+                    console.error('Firebase DB fetch error:', e);
+                }
             }
-            if (!loaded && cfg.repo) {
-                try {
-                    const res = await fetch(`https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch || 'main'}/records.json?t=${Date.now()}`);
-                    if (res.ok) {
-                        const text = await res.text();
-                        githubRecords = text.trim() ? JSON.parse(text) : [];
-                        loaded = true;
-                    }
-                } catch(e) { console.error('Public records.json fetch error:', e); }
+
+            if (!loaded) {
+                if (cfg.token && cfg.repo) {
+                    try {
+                        const res = await fetch(
+                            `https://api.github.com/repos/${cfg.repo}/contents/records.json?ref=${cfg.branch || 'main'}&t=${Date.now()}`,
+                            { headers: { 'Authorization': 'token ' + cfg.token, 'Accept': 'application/vnd.github.v3+json' } }
+                        );
+                        if (res.ok) {
+                            const d = await res.json();
+                            const decoded = atob(d.content.replace(/\n/g, ''));
+                            githubRecords = decoded.trim() ? JSON.parse(decoded) : [];
+                            loaded = true;
+                        }
+                    } catch(e) { console.error('GitHub records.json fetch error:', e); }
+                }
+
+                if (!loaded && cfg.repo) {
+                    try {
+                        const res = await fetch(`https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch || 'main'}/records.json?t=${Date.now()}`);
+                        if (res.ok) {
+                            const text = await res.text();
+                            githubRecords = text.trim() ? JSON.parse(text) : [];
+                            loaded = true;
+                        }
+                    } catch(e) { console.error('Public records.json fetch error:', e); }
+                }
             }
+
             // Find matching GitHub record by last-5 phone or AWB digits
             const ghMatch = githubRecords.find(r => last5Match(r.phone, r.awb)) || null;
+
             // Resolve AWB: prefer records.json match (most reliable source)
             const resolvedAwb = (ghMatch && ghMatch.awb) || cleanAwbParam || '';
+
             // Resolve photoUrl: prefer records.json, then localStorage, then images/ folder
             let resolvedPhoto = (ghMatch && ghMatch.photoUrl) || null;
+
             // 1. If still no photo, scan GitHub images/ folder by lookupKey in filename
             if (!resolvedPhoto && cfg.token && cfg.repo && lookupKey.length >= 4) {
                 try {
@@ -790,6 +918,7 @@
                     }
                 } catch(e) { console.error('GitHub images/ folder fetch error:', e); }
             }
+
             // Build unified foundRecord
             foundRecord = (resolvedPhoto || resolvedAwb || ghMatch) ? {
                 photoUrl: resolvedPhoto,
@@ -797,10 +926,12 @@
                 uploadedAt: ghMatch ? ghMatch.uploadedAt : null,
                 name: ghMatch ? ghMatch.name : ''
             } : null;
+
             // 3. Render result
             if (foundRecord && (foundRecord.photoUrl || foundRecord.photo)) {
                 const photoUrl = foundRecord.photoUrl || foundRecord.photo;
                 photoContainer.innerHTML = `<img src="${photoUrl}" style="width:100%;max-height:60vh;object-fit:contain;border-radius:12px;" onclick="window.open('${photoUrl}','_blank')" onerror="this.parentElement.innerHTML='<span>⚠️ Photo could not load.<br><small>Check GitHub repository.</small></span>'">`;
+
                 // Show timeline update if available
                 const timeline = document.getElementById('tracking-timeline');
                 if (timeline && foundRecord.uploadedAt) {
@@ -821,6 +952,7 @@
                         </div>
                     `;
                 }
+
                 // Show live track section if AWB exists
                 const trackAwb = cleanAwbParam || foundRecord.awb || '';
                 if (liveWrap) {
@@ -853,6 +985,7 @@
                     <small style="color:var(--text-muted);">Phone: ${cleanPhoneParam}</small><br><br>
                     <a href="../uploads.html" target="_blank" style="color:#60a5fa;font-size:0.85rem;">Upload tracking photo →</a>
                 </div>`;
+
                 // Still show live track if AWB is known
                 const trackAwb = cleanAwbParam || '';
                 if (liveWrap && trackAwb) {
@@ -874,6 +1007,7 @@
                 }
             }
         }
+
         function initYQModal(awbNum) {
             function tryInit() {
                 const container = document.getElementById('YQContainer-modal');
@@ -896,10 +1030,13 @@
             }
             tryInit();
         }
+
         // CSS for the spinner inside modal
         const modalStyle = document.createElement('style');
         modalStyle.textContent = '@keyframes modalSpin { to { transform: rotate(360deg); } }';
         document.head.appendChild(modalStyle);
+
     </script>
 </body>
+
 </html>
