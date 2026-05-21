@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom PDF & Print Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Dancing+Script&family=Poppins:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Raleway:wght@400;700&family=Nunito:wght@400;700&family=Oswald:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=PT+Sans:wght@400;700&family=Ubuntu:wght@400;700&family=Source+Sans+3:wght@400;700&family=Noto+Sans:wght@400;700&family=Mulish:wght@400;700&family=Quicksand:wght@400;700&family=Josefin+Sans:wght@400;700&family=Fira+Sans:wght@400;700&family=Exo+2:wght@400;700&family=Barlow:wght@400;700&family=Inter:wght@400;700&family=DM+Sans:wght@400;700&family=Work+Sans:wght@400;700&family=Cabin:wght@400;700&family=Karla:wght@400;700&family=Rubik:wght@400;700&family=Jost:wght@400;700&family=Manrope:wght@400;700&family=Pacifico&family=Lobster&family=Comfortaa:wght@400;700&family=Righteous&family=Caveat:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0a0f1e;
+            --card: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59, 130, 246, 0.18), transparent),
+                radial-gradient(ellipse 60% 50% at 80% 110%, rgba(139, 92, 246, 0.18), transparent);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 28px 20px 60px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: clamp(1.6rem, 4vw, 2.6rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 6px;
+        }
+
+        nav {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #93c5fd;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 9px 20px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 50px;
+            background: rgba(59, 130, 246, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        nav a:hover,
+        nav a.on {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.7);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+            color: white;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            justify-content: center;
+            align-items: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .divider {
+            width: 1px;
+            height: 30px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 9px 15px;
+            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.22s;
+            white-space: nowrap;
+        }
+
+        .btn-default {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.35);
+        }
+
+        .btn-default:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.65);
+            transform: translateY(-1px);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-add:hover {
+            opacity: 0.88;
+            transform: translateY(-2px);
+        }
+
+        .btn-pdf {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            border-color: rgba(16, 185, 129, 0.35);
+        }
+
+        .btn-pdf:hover {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: rgba(16, 185, 129, 0.65);
+            transform: translateY(-1px);
+        }
+
+        .btn-print {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-print:hover {
+            opacity: 0.88;
+            transform: translateY(-2px);
+        }
+
+        select {
+            padding: 9px 13px;
+            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        select option {
+            background: #1e293b;
+        }
+
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .addr-box {
+            width: calc(33.33% - 14px);
+            min-width: 280px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 46px 16px 16px;
+            position: relative;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            transition: border-color 0.25s, box-shadow 0.25s;
+            animation: fadeUp 0.3s ease both;
+        }
+
+        .addr-box:hover {
+            border-color: rgba(59, 130, 246, 0.35);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.12);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .box-topbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+
+        .box-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .lock-btn {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 5px;
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lock-btn:hover {
+            background: rgba(239, 68, 68, 0.28);
+        }
+
+        .del-btn {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 5px;
+            border: 1px solid rgba(100, 116, 139, 0.4);
+            background: rgba(100, 116, 139, 0.1);
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .del-btn:hover {
+            background: rgba(239, 68, 68, 0.22);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .editable {
+            width: 100%;
+            min-height: 110px;
+            max-height: 300px;
+            overflow-y: auto;
+            word-wrap: break-word;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 11px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            background: rgba(255, 255, 255, 0.93);
+            color: #111;
+            line-height: 1.65;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .editable:focus {
+            border-color: rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .editable[contenteditable="false"] {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .empty-state {
+            width: 100%;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3.5rem;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 14px 12px 50px;
+            }
+
+            .addr-box {
+                width: 100%;
+            }
+
+            .divider {
+                display: none;
+            }
+
+            .btn {
+                padding: 9px 11px;
+                font-size: 13px;
+            }
+
+            select {
+                font-size: 13px;
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>&#128230; Custom PDF &amp; Print Maker</h1>
+        <p>Create, format and print shipping addresses with auto QR codes</p>
+    </header>
+
+    <nav>
+        <a href="index.html" class="on">📄 Labels</a>
+        <a href="scanner.html">🔍 Scanner</a>
+        <a href="dispatched.html">📋 Dispatched</a>
+        <a href="../uploads.html">📸 Upload Tracking</a>
+        <a href="../search.html">🔎 Search Photos</a>
+    </nav>
+
+    <div class="toolbar">
+
+        <button class="btn btn-add" onclick="addBox()">&#10133; Add Box</button>
+
+        <div class="divider"></div>
+
+        <select id="fontFamily" onchange="applyFont()">
+            <option value="Poppins" selected>Poppins</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Open Sans">Open Sans</option>
+            <option value="Lato">Lato</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Raleway">Raleway</option>
+            <option value="Nunito">Nunito</option>
+            <option value="Oswald">Oswald</option>
+            <option value="Inter">Inter</option>
+            <option value="DM Sans">DM Sans</option>
+            <option value="Work Sans">Work Sans</option>
+            <option value="Barlow">Barlow</option>
+            <option value="Fira Sans">Fira Sans</option>
+            <option value="Exo 2">Exo 2</option>
+            <option value="Cabin">Cabin</option>
+            <option value="Karla">Karla</option>
+            <option value="Rubik">Rubik</option>
+            <option value="Jost">Jost</option>
+            <option value="Manrope">Manrope</option>
+            <option value="Mulish">Mulish</option>
+            <option value="Quicksand">Quicksand</option>
+            <option value="Josefin Sans">Josefin Sans</option>
+            <option value="Ubuntu">Ubuntu</option>
+            <option value="PT Sans">PT Sans</option>
+            <option value="Source Sans 3">Source Sans 3</option>
+            <option value="Noto Sans">Noto Sans</option>
+            <option value="Merriweather">Merriweather</option>
+            <option value="Playfair Display">Playfair Display</option>
+            <option value="Pacifico">Pacifico</option>
+            <option value="Lobster">Lobster</option>
+            <option value="Comfortaa">Comfortaa</option>
+            <option value="Righteous">Righteous</option>
+            <option value="Caveat">Caveat</option>
+            <option value="Dancing Script">Dancing Script</option>
+            <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Segoe UI">Segoe UI</option>
+        </select>
+
+        <select id="pageSize">
+            <option value="A4">A4</option>
+            <option value="A5">A5</option>
+            <option value="A6" selected>A6</option>
+        </select>
+
+        <div class="divider"></div>
+
+        <button class="btn btn-default" onclick="alignAll('left')">Left</button>
+        <button class="btn btn-default" onclick="alignAll('right')">Right</button>
+        <button class="btn btn-default" onclick="changeFontSize(1)">A+</button>
+        <button class="btn btn-default" onclick="changeFontSize(-1)">A-</button>
+        <button class="btn btn-default" onclick="document.execCommand('bold')"><b>Bold</b></button>
+
+        <div class="divider"></div>
+
+        <button class="btn btn-pdf" onclick="generatePDF()">Download PDF</button>
+        <button class="btn btn-print" onclick="printAddresses()">&#128424; Print</button>
+
+    </div>
+
+    <div id="grid" class="grid">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">&#128221;</div>
+            <p>Click <strong>Add Box</strong> to create your first address card</p>
+        </div>
+    </div>
+
+    <script>
+        function addBox() {
+            var es = document.getElementById('emptyState');
+            if (es) es.remove();
+            var grid = document.getElementById('grid');
+            var box = document.createElement('div');
+            box.className = 'addr-box';
+            box.innerHTML =
+                '<div class="box-topbar">' +
+                '<div class="box-actions">' +
+                '<button class="lock-btn" onclick="toggleLock(this)">Lock</button>' +
+                '<button class="del-btn"  onclick="removeBox(this)">X</button>' +
+                '</div>' +
+                '</div>' +
+                '<div class="editable" contenteditable="true" style="font-size:16px;font-family:Poppins,sans-serif;"></div>';
+            grid.appendChild(box);
+            box.querySelector('.editable').focus();
+        }
+
+        function removeBox(btn) {
+            var box = btn.closest('.addr-box');
+            box.style.transition = 'all 0.18s';
+            box.style.opacity = '0';
+            box.style.transform = 'scale(0.93)';
+            setTimeout(function () {
+                box.remove();
+                if (!document.querySelector('.addr-box')) {
+                    document.getElementById('grid').innerHTML =
+                        '<div class="empty-state" id="emptyState"><div class="icon">&#128221;</div>' +
+                        '<p>Click <strong>Add Box</strong> to create your first address card</p></div>';
+                }
+            }, 180);
+        }
+
+        function toggleLock(btn) {
+            var ed = btn.closest('.addr-box').querySelector('.editable');
+            var locked = ed.contentEditable === 'false';
+            ed.contentEditable = locked ? 'true' : 'false';
+            btn.textContent = locked ? 'Lock' : 'Unlock';
+        }
+
+        function applyFont() {
+            var font = document.getElementById('fontFamily').value;
+            document.querySelectorAll('.editable').forEach(function (el) {
+                el.style.fontFamily = font;
+            });
+        }
+
+        function alignAll(dir) {
+            document.querySelectorAll('.editable').forEach(function (el) {
+                el.style.textAlign = dir;
+            });
+        }
+
+        function changeFontSize(delta) {
+            document.querySelectorAll('.editable').forEach(function (el) {
+                var cur = parseInt(window.getComputedStyle(el).fontSize);
+                var next = cur + delta;
+                if (next >= 10 && next <= 60) el.style.fontSize = next + 'px';
+            });
+        }
+
+        /* ============================================================
+           PRINT — proven pattern from old working app
+           open window → write header → loop write pages → close → print
+           QR code wrapped in try/catch so long addresses never crash it
+        ============================================================ */
+        async function printAddresses() {
+            var boxes = document.querySelectorAll('.addr-box');
+            var fontFamily = document.getElementById('fontFamily').value;
+            var pageSize = document.getElementById('pageSize').value;
+
+            // Open popup first synchronously to avoid popup blockers
+            var win = window.open('', '', 'width=800,height=900');
+            if (!win) {
+                alert('Popup blocked! Allow popups for this site in the address bar, then try again.');
+                return;
+            }
+
+            // Write header immediately
+            win.document.write(
+                '<html><head>' +
+                '<title>Print ' + pageSize + '</title>' +
+                '<link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">' +
+                '<style>' +
+                '@page{size:' + pageSize + ' portrait;margin:10mm}' +
+                'body{font-family:' + fontFamily + ',sans-serif;margin:0;padding:0}' +
+                '.page{width:100%;height:100%;page-break-after:always;box-sizing:border-box;padding:20px;position:relative}' +
+                '.body-row{display:flex;justify-content:space-between;align-items:flex-start;padding-top:30px}' +
+                '.content{flex:1;font-size:16px;word-wrap:break-word;padding:10px}' +
+                '.qr-img{margin-left:15px;flex-shrink:0}' +
+                '.note{position:absolute;bottom:20px;left:0;width:100%;text-align:center;font-size:15px;font-weight:bold}' +
+                '</style></head><body>'
+            );
+
+            // Write each page directly in the loop using async await
+            for (var b = 0; b < boxes.length; b++) {
+                var box = boxes[b];
+                var editable = box.querySelector('.editable');
+                var content = editable.innerHTML.trim();
+                var plainText = editable.innerText.trim();
+                var size = window.getComputedStyle(editable).fontSize;
+                var align = window.getComputedStyle(editable).textAlign;
+
+                if (!content) continue;
+
+                // Extract key fields using robust regex for Indian phone numbers
+                var phoneMatch = plainText.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
+                var phone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
+                var pincode = (plainText.match(/\b\d{6}\b/) || [''])[0];
+                var name = '';
+                var textLines = plainText.split('\n');
+                for (var i = 0; i < textLines.length; i++) {
+                    if (textLines[i].trim()) { name = textLines[i].trim(); break; }
+                }
+
+                // Generate QR code — short payload only (name+phone+pincode)
+                // Wrapped in try/catch so a long address NEVER crashes the loop
+                var qrDataUrl = '';
+                try {
+                    var qrText = (name + ' ' + phone + ' ' + pincode).trim();
+                    if (qrText.length < 3) qrText = plainText.substring(0, 100);
+                    var qrContainer = document.createElement('div');
+                    new QRCode(qrContainer, {
+                        text: qrText,
+                        width: 256,
+                        height: 256,
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+
+                    // Wait slightly for the canvas to draw, same as PDF logic
+                    await new Promise(function (resolve) { setTimeout(resolve, 60); });
+
+                    var cv = qrContainer.querySelector('canvas');
+                    if (cv) qrDataUrl = cv.toDataURL('image/png');
+                } catch (e) {
+                    qrDataUrl = ''; // no QR is fine — address still prints
+                }
+
+                // Write this page into the popup
+                win.document.write(
+                    '<div class="page">' +
+                    '<div class="body-row">' +
+                    '<div class="content" style="font-size:' + size + ';text-align:' + align + '">' + content + '</div>' +
+                    (qrDataUrl ? '<div class="qr-img"><img src="' + qrDataUrl + '" width="100" height="100"/></div>' : '') +
+                    '</div>' +
+                    '<div class="note"><em>&#9888;&#65039; Important : Unboxing video required for any claim.</em></div>' +
+                    '</div>'
+                );
+            }
+
+            // Close and print with a slight delay so QR codes and web fonts can fully load
+            win.document.write('</body></html>');
+            win.document.close();
+
+            setTimeout(function () {
+                win.focus();
+                win.print();
+            }, 500);
+        }
+
+        /* ============================================================
+           PDF DOWNLOAD
+        ============================================================ */
+        async function generatePDF() {
+            var jsPDFLib = window.jspdf;
+            var doc = new jsPDFLib.jsPDF({ format: document.getElementById('pageSize').value.toLowerCase() });
+            var pageSize = document.getElementById('pageSize').value.toLowerCase();
+
+            var colWidth = 180, maxH = 270, qrSz = 35, qrX = 160;
+            if (pageSize === 'a5') { colWidth = 100; maxH = 190; qrSz = 30; qrX = 110; }
+            if (pageSize === 'a6') { colWidth = 65; maxH = 130; qrSz = 25; qrX = 75; }
+
+            var boxes = document.querySelectorAll('.editable');
+            var y = 10;
+
+            for (var b = 0; b < boxes.length; b++) {
+                var text = boxes[b].innerText.trim();
+                if (!text) continue;
+
+                var phoneMatch = text.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
+                var phone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
+                var pincode = (text.match(/\b\d{6}\b/) || [''])[0];
+                var name = text.split('\n').find(function (l) { return l.trim(); }) || '';
+                var qrUrl = null;
+
+                try {
+                    var qDiv = document.createElement('div');
+                    new QRCode(qDiv, {
+                        text: name + ' ' + phone + ' ' + pincode,
+                        width: 512, height: 512, correctLevel: QRCode.CorrectLevel.M
+                    });
+                    await new Promise(function (r) { setTimeout(r, 60); });
+                    var cv = qDiv.querySelector('canvas');
+                    if (cv) qrUrl = cv.toDataURL('image/png');
+                } catch (e) { qrUrl = null; }
+
+                var lines = doc.splitTextToSize(text, colWidth);
+                var blockH = Math.max(lines.length * 6, qrSz) + 15;
+
+                if (y + blockH > maxH && y !== 10) { doc.addPage(); y = 10; }
+                doc.text(lines, 10, y + 5);
+                if (qrUrl) doc.addImage(qrUrl, 'PNG', qrX, y, qrSz, qrSz);
+                y += blockH;
+            }
+
+            doc.save('addresses.pdf');
+        }
+
+        // Start with one box
+        addBox();
+    </script>
+</body>
+
+</html>
