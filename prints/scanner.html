@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- HTML5 QR Code Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
     <style>
         :root {
             --primary: #10b981;
@@ -20,14 +18,12 @@
             --text-muted: #94a3b8;
             --border: rgba(255, 255, 255, 0.1);
         }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Outfit', sans-serif;
         }
-
         body {
             background-color: var(--bg);
             background-image: radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), transparent 40%),
@@ -39,14 +35,12 @@
             align-items: center;
             padding: 40px 20px;
         }
-
         .header {
             text-align: center;
             margin-bottom: 30px;
             width: 100%;
             max-width: 600px;
         }
-
         .header h1 {
             font-size: 2.5rem;
             font-weight: 700;
@@ -55,11 +49,9 @@
             -webkit-text-fill-color: transparent;
             margin-bottom: 10px;
         }
-
         .header p {
             color: var(--text-muted);
         }
-
         .glass-card {
             background: var(--card-bg);
             backdrop-filter: blur(16px);
@@ -71,7 +63,6 @@
             width: 100%;
             max-width: 500px;
         }
-
         /* Scanner overrides */
         #reader {
             width: 100%;
@@ -79,15 +70,12 @@
             overflow: hidden;
             border: 2px solid var(--primary) !important;
         }
-
         #reader__dashboard_section_csr span {
             color: var(--text-main) !important;
         }
-
         #reader__dashboard_section_swaplink {
             color: var(--primary) !important;
         }
-
         #reader button {
             background: var(--primary);
             color: white;
@@ -99,7 +87,6 @@
             font-family: 'Outfit', sans-serif;
             font-weight: 600;
         }
-
         /* Status Toast */
         .status-toast {
             position: fixed;
@@ -118,7 +105,6 @@
             transition: bottom 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
             z-index: 1000;
         }
-
         .switch-btn {
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
@@ -136,31 +122,25 @@
             gap: 8px;
             font-size: 1.1rem;
         }
-
         .switch-btn:hover {
             background: rgba(59, 130, 246, 0.4);
             transform: translateY(-2px);
         }
-
         .status-toast.show {
             bottom: 40px;
         }
-
         .status-toast.success {
             border-color: #10b981;
             color: #10b981;
         }
-
         .status-toast.error {
             border-color: #ef4444;
             color: #ef4444;
         }
-
         .status-toast.loading {
             border-color: #eab308;
             color: #eab308;
         }
-
         .loader {
             border: 3px solid rgba(255, 255, 255, 0.1);
             border-top: 3px solid currentColor;
@@ -169,17 +149,14 @@
             height: 20px;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
             }
-
             100% {
                 transform: rotate(360deg);
             }
         }
-
         nav {
             display: flex;
             gap: 10px;
@@ -189,7 +166,6 @@
             width: 100%;
             max-width: 600px;
         }
-
         nav a {
             color: #34d399;
             text-decoration: none;
@@ -201,14 +177,12 @@
             transition: all .2s;
             font-size: .88rem;
         }
-
         nav a:hover,
         nav a.on {
             background: var(--primary);
             color: #fff;
             border-color: var(--primary);
         }
-
         /* Setup warning */
         .setup-warning {
             background: rgba(239, 68, 68, 0.1);
@@ -220,12 +194,10 @@
             font-size: 0.9rem;
             text-align: center;
         }
-
         .setup-warning a {
             color: white;
             text-decoration: underline;
         }
-
         @media(max-width: 600px) {
             body {
                 padding: 20px 15px;
@@ -249,7 +221,6 @@
         }
     </style>
 </head>
-
 <body>
     <nav>
         <a href="index.html">📄 Labels</a>
@@ -258,46 +229,37 @@
         <a href="../uploads.html">📸 Upload Tracking</a>
         <a href="../search.html">🔎 Search Photos</a>
     </nav>
-
     <div class="header">
         <h1>Dispatch Scanner</h1>
         <p>Scan address label QR codes to save them directly to Google Sheets.</p>
     </div>
-
     <div class="glass-card">
         <div id="setup-warning" class="setup-warning" style="display: none;">
             <strong>Setup Required:</strong> You need to add your Google Web App URL in the scanner.html file for data
             saving to work.
         </div>
-
         <div id="reader"></div>
         <button class="switch-btn" onclick="switchCamera()">🔄 Switch Camera (Front/Back)</button>
     </div>
-
     <div id="toast" class="status-toast">
         <div id="toast-icon"></div>
         <span id="toast-message">Ready</span>
     </div>
-
     <script>
         // ========================================================================
         // ⚠️ IMPORTANT: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW ⚠️
         // ========================================================================
-        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxHndUl7dddDsUXnp12WCCzj3CKaIdCvDh2EO5DD-OdLgvnqK62sR0XBvus3B9IJijY/exec";
+        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxjfysWUdP_cysJyXwA5KfUfQuWEfS6HU4Zh2--kzSPzdWlfO0Mc1Mji2DkstX7xihWlg/exec";
         // Example: "https://script.google.com/macros/s/AKfycbx.../exec"
-
-
         const html5QrCode = new Html5Qrcode("reader");
         let currentFacingMode = "environment";
         let isProcessing = false;
-
         window.onload = function () {
             if (!GOOGLE_WEB_APP_URL || GOOGLE_WEB_APP_URL.trim() === "") {
                 document.getElementById('setup-warning').style.display = 'block';
             }
             startScanner();
         }
-
         function startScanner() {
             html5QrCode.start(
                 { facingMode: currentFacingMode },
@@ -313,10 +275,8 @@
                 showToast('error', 'Camera not found or blocked.');
             });
         }
-
         function switchCamera() {
             currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
-
             if (html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => {
                     startScanner();
@@ -327,15 +287,12 @@
                 startScanner();
             }
         }
-
         function showToast(type, message) {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
             const msg = document.getElementById('toast-message');
-
             toast.className = `status-toast show ${type}`;
             msg.innerText = message;
-
             if (type === 'loading') {
                 icon.innerHTML = '<div class="loader"></div>';
             } else if (type === 'success') {
@@ -343,17 +300,14 @@
             } else {
                 icon.innerHTML = '❌';
             }
-
             if (type !== 'loading') {
                 setTimeout(() => {
                     toast.classList.remove('show');
                 }, 3000);
             }
         }
-
         function onScanSuccess(decodedText, decodedResult) {
             if (isProcessing) return; // Prevent multiple scans at once
-
             // Try parsing the text as JSON
             let parsedData;
             try {
@@ -389,13 +343,11 @@
                     rawText: text
                 };
             }
-
             isProcessing = true;
             if (html5QrCode.getState && html5QrCode.getState() === 2) {
                 html5QrCode.pause(true); // Pause scanning visually
             }
             showToast('loading', 'Saving to Google Sheets...');
-
             // If user hasn't set the URL yet, simulate success for testing
             if (!GOOGLE_WEB_APP_URL || GOOGLE_WEB_APP_URL.trim() === "") {
                 setTimeout(() => {
@@ -409,11 +361,9 @@
                 }, 1000);
                 return;
             }
-
             // Prepare data for standard form POST submission
             const formData = new URLSearchParams();
             formData.append("data", JSON.stringify(parsedData));
-
             fetch(GOOGLE_WEB_APP_URL, {
                 method: "POST",
                 body: formData
@@ -447,12 +397,10 @@
                     }, 2000);
                 });
         }
-
         function onScanFailure(error) {
             // handle scan failure, usually better to ignore and keep scanning
             // console.warn(`Code scan error = ${error}`);
         }
     </script>
 </body>
-
 </html>
