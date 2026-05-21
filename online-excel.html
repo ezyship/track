@@ -928,6 +928,11 @@
                 allBills = snap.val() || {};
                 renderSpreadsheet();
                 
+                // If a bill is currently being viewed, refresh its details dynamically
+                if (activeViewBillId && allBills[activeViewBillId] && document.getElementById('viewBillModal').classList.contains('open')) {
+                    viewBillDetails(activeViewBillId);
+                }
+                
                 if (initialLoad) {
                     initialLoad = false;
                     const urlParams = new URLSearchParams(window.location.search);
@@ -1184,6 +1189,7 @@
                         <th onclick="handleSort('totalBusiness')">Total Business Done</th>
                         <th onclick="handleSort('remainingBalance')">Outstanding Balance</th>
                         <th onclick="handleSort('lastBillingDate')">Last Billing Date</th>
+                        <th>Actions</th>
                     </tr>
                 `;
 
@@ -1191,7 +1197,7 @@
 
                 // Table Body
                 if (filteredRows.length === 0) {
-                    body.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--muted);">No customers found.</td></tr>`;
+                    body.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 24px; color: var(--muted);">No customers found.</td></tr>`;
                 } else {
                     filteredRows.forEach(r => {
                         const tr = document.createElement('tr');
@@ -1203,6 +1209,9 @@
                             <td style="color:var(--success)">₹${r.totalBusiness.toFixed(2)}</td>
                             <td style="color:${r.remainingBalance > 0 ? 'var(--danger)' : 'var(--muted)'}">₹${r.remainingBalance.toFixed(2)}</td>
                             <td>${r.lastBillingDate}</td>
+                            <td>
+                                <button class="btn-view" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.borderColor='rgba(239, 68, 68, 0.5)'; this.style.color='white';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.borderColor='rgba(239, 68, 68, 0.3)'; this.style.color='#fca5a5';" onclick="deleteCustomerAccountFromViewer('${r.phone}')">🗑️ Delete</button>
+                            </td>
                         `;
                         body.appendChild(tr);
                     });
@@ -1497,6 +1506,19 @@
             const savedDate = new Date().toISOString();
 
             try {
+                // Update local memory representation immediately for instant UI update
+                if (allBills[activeViewBillId]) {
+                    allBills[activeViewBillId].status = newStatus;
+                    allBills[activeViewBillId].amountPaid = newAmountPaid;
+                    allBills[activeViewBillId].amountPending = newAmountPending;
+                    allBills[activeViewBillId].paymentTimestamp = newStatus === 'paid' ? savedDate : (bill.paymentTimestamp || null);
+                    allBills[activeViewBillId].updatedAt = savedDate;
+                }
+                
+                // Refresh modal details and background table instantly
+                viewBillDetails(activeViewBillId);
+                renderSpreadsheet();
+
                 await db.ref('bills/' + activeViewBillId).update({
                     status: newStatus,
                     amountPaid: newAmountPaid,
@@ -1511,12 +1533,6 @@
 
                 showToast("Payment status updated successfully!", "success");
 
-                setTimeout(() => {
-                    if (activeViewBillId) {
-                        viewBillDetails(activeViewBillId);
-                    }
-                }, 100);
-
             } catch (err) {
                 showToast("Failed to update status: " + err.message, "error");
             }
@@ -1524,6 +1540,9 @@
 
         async function syncCustomerLedgerTotalsInViewer(phone) {
             if (typeof db === 'undefined' || !db) return;
+            const customerSnap = await db.ref('customers/' + phone).once('value');
+            if (!customerSnap.exists()) return; // Do not recreate deleted customer profiles during ledger recalculations
+
             const billsSnap = await db.ref('bills').orderByChild('customerPhone').equalTo(phone).once('value');
             
             let totalBusiness = 0;
@@ -1548,6 +1567,19 @@
                 remainingBalance: remainingBalance,
                 lastBillingDate: lastDate > 0 ? new Date(lastDate).toISOString() : null
             });
+        }
+
+        async function deleteCustomerAccountFromViewer(phone) {
+            const customer = allCustomers[phone];
+            const name = customer ? (customer.name || phone) : phone;
+            if (confirm(`Are you sure you want to permanently delete the customer account for "${name}" (${phone})? This action cannot be undone. Historical invoices will remain in the database.`)) {
+                try {
+                    await db.ref('customers/' + phone).remove();
+                    showToast(`Customer account for "${name}" deleted successfully.`, "success");
+                } catch (err) {
+                    showToast("Failed to delete customer: " + err.message, "error");
+                }
+            }
         }
 
         function downloadSingleBillExcel() {

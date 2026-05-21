@@ -181,6 +181,14 @@
             }
         }
 
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+        }
+
         /* Glass Cards */
         .glass-card {
             background: var(--card-bg);
@@ -881,9 +889,10 @@
                     </div>
                     <div class="form-group">
                         <label>Actions</label>
-                        <div style="display:flex; gap:8px; height: 100%;">
-                            <button class="btn btn-s btn-sm" style="flex:1;" onclick="printShippingLabelDirect()">🖨️ Print Shipping Label</button>
-                            <button class="btn btn-success btn-sm" style="flex:1;" onclick="viewSelectedCustomerExcel()">📊 View in Excel</button>
+                        <div style="display:flex; gap:8px; height: 100%; flex-wrap: wrap;">
+                            <button class="btn btn-s btn-sm" style="flex:1; min-width: 100px;" onclick="printShippingLabelDirect()">🖨️ Print Label</button>
+                            <button class="btn btn-success btn-sm" style="flex:1; min-width: 100px;" onclick="viewSelectedCustomerExcel()">📊 View Excel</button>
+                            <button class="btn btn-danger btn-sm" style="flex:1; min-width: 100px; background: var(--danger);" onclick="deleteActiveCustomerAccount()">🗑️ Delete Account</button>
                         </div>
                     </div>
                 </div>
@@ -1173,7 +1182,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" onclick="deleteCustomerAccount()" style="margin-right: auto; background: var(--danger);">🗑️ Delete Customer</button>
+                <button class="btn btn-danger" id="ledgerDeleteBtn" onclick="deleteCustomerAccount()" style="margin-right: auto; background: var(--danger);">🗑️ Delete Customer</button>
                 <button class="btn btn-success" onclick="viewLedgerCustomerInExcel()">📊 View in Excel</button>
                 <button class="btn btn-success" onclick="exportCustomerLedgerExcel()">📥 Export Ledger Excel</button>
                 <button class="btn btn-s" onclick="closeModal('customerLedgerModal')">Close</button>
@@ -1911,6 +1920,9 @@
 
         // --- Recalculates aggregate statistics for a customer ledger ---
         async function syncCustomerLedgerTotals(phone) {
+            const customerSnap = await db.ref(`customers/${phone}`).once('value');
+            if (!customerSnap.exists()) return; // Do not recreate deleted customer profiles during ledger recalculations
+
             const billsSnap = await db.ref('bills').orderByChild('customerPhone').equalTo(phone).once('value');
             
             let totalBusiness = 0;
@@ -2581,15 +2593,53 @@
         // --- Customer Ledger detailed modal view ---
         let selectedCustomerPhoneForLedger = null;
         function openCustomerLedger(phone) {
-            const customer = allCustomers[phone];
-            if (!customer) return;
+            let customer = allCustomers[phone];
+            
+            // Handle deleted customer fallback
+            if (!customer) {
+                // Find a bill for this customer phone to get the name
+                const lastBill = Object.values(allBills)
+                    .filter(b => b.customerPhone === phone)
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+                
+                const name = lastBill ? `${lastBill.customerName} (Deleted Account)` : "Deleted Customer";
+                const gst = lastBill ? (lastBill.customerGst || 'N/A') : 'N/A';
+                
+                // Calculate ledger totals from bills since customer profile is deleted
+                let totalBusiness = 0;
+                let remainingBalance = 0;
+                Object.values(allBills).forEach(b => {
+                    if (b.customerPhone === phone && b.status !== 'cancelled') {
+                        totalBusiness += parseFloat(b.grandTotal) || 0;
+                        remainingBalance += parseFloat(b.amountPending) || 0;
+                    }
+                });
+                
+                customer = {
+                    name: name,
+                    phone: phone,
+                    gst: gst,
+                    totalBusiness: totalBusiness,
+                    remainingBalance: remainingBalance
+                };
+            }
 
             selectedCustomerPhoneForLedger = phone;
             document.getElementById('ledger-customer-name').textContent = customer.name;
             document.getElementById('ledger-customer-phone').textContent = phone;
-            document.getElementById('ledger-customer-gst').textContent = customer.gst || 'N/A';
+            document.getElementById('ledger-customer-gst').textContent = customer.gst || customer.customerGst || 'N/A';
             document.getElementById('ledger-customer-total').textContent = '₹' + (customer.totalBusiness || 0).toFixed(2);
             document.getElementById('ledger-customer-pending').textContent = '₹' + (customer.remainingBalance || 0).toFixed(2);
+
+            // Hide the delete customer button in the modal if the customer is already deleted
+            const deleteBtn = document.getElementById('ledgerDeleteBtn');
+            if (deleteBtn) {
+                if (allCustomers[phone]) {
+                    deleteBtn.style.display = 'inline-block';
+                } else {
+                    deleteBtn.style.display = 'none';
+                }
+            }
 
             // Reset filters to defaults
             document.getElementById('ledgerFilterDateRange').value = 'all';
@@ -2615,6 +2665,26 @@
                     await db.ref(`customers/${phone}`).remove();
                     showToast(`Customer account for "${customer.name}" deleted successfully.`, "success");
                     closeModal('customerLedgerModal');
+                } catch (err) {
+                    showToast("Failed to delete customer: " + err.message, "error");
+                }
+            }
+        }
+
+        async function deleteActiveCustomerAccount() {
+            const phone = document.getElementById('customerPhone').value.trim();
+            if (!phone) {
+                showToast("Please enter a customer phone number first.", "error");
+                return;
+            }
+            const customer = allCustomers[phone];
+            const name = customer ? (customer.name || phone) : phone;
+
+            if (confirm(`Are you sure you want to permanently delete the customer account for "${name}" (${phone})? This action cannot be undone. Historical invoices will remain in the database.`)) {
+                try {
+                    await db.ref(`customers/${phone}`).remove();
+                    showToast(`Customer account for "${name}" deleted successfully.`, "success");
+                    clearBillScreen();
                 } catch (err) {
                     showToast("Failed to delete customer: " + err.message, "error");
                 }
@@ -2725,7 +2795,9 @@
         // --- Excel Exports Operations via SheetJS ---
         function exportCustomerLedgerExcel() {
             if (!selectedCustomerPhoneForLedger) return;
-            const customer = allCustomers[selectedCustomerPhoneForLedger];
+            const customer = allCustomers[selectedCustomerPhoneForLedger] || {
+                name: "Deleted_Customer_" + selectedCustomerPhoneForLedger
+            };
             
             if (activeFilteredLedgerBills.length === 0) {
                 showToast("No ledger records found to export.", "error");
