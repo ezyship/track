@@ -950,6 +950,7 @@
             <div class="card-header">
                 <h2>📋 Invoices Database</h2>
                 <div style="display:flex; gap:10px;">
+                    <button class="btn btn-success btn-sm" onclick="exportFilteredBillsExcel()">🟢 Export Filtered Excel</button>
                     <button class="btn btn-s btn-sm" onclick="showUtilityModal()">📂 Export / Tools</button>
                 </div>
             </div>
@@ -1053,6 +1054,43 @@
                     <div class="ledger-stat-card">
                         <label>Outstanding Balance</label>
                         <span id="ledger-customer-pending" style="color:var(--danger)">₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Ledger Dynamic Filter Panel -->
+                <div class="filters-panel" style="margin-bottom: 15px; padding: 12px; background: rgba(15, 23, 42, 0.4);">
+                    <div class="filters-row">
+                        <div class="filter-item">
+                            <label for="ledgerFilterDateRange">📅 Date Filter</label>
+                            <select id="ledgerFilterDateRange" onchange="handleLedgerDateFilterChange()">
+                                <option value="all">All Invoices</option>
+                                <option value="today">Today</option>
+                                <option value="month">Current Month</option>
+                                <option value="last-month">Last Month</option>
+                                <option value="financial-year">Financial Year</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="ledgerFilterStatus">🏷️ Status</label>
+                            <select id="ledgerFilterStatus" onchange="filterAndLoadLedgerTable()">
+                                <option value="all">All Statuses</option>
+                                <option value="paid">Paid</option>
+                                <option value="unpaid">Unpaid</option>
+                                <option value="partial">Partial Paid</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filters-row" id="ledger-custom-date-inputs" style="display: none; margin-top: 10px;">
+                        <div class="filter-item">
+                            <label for="ledgerStartDate">Start Date</label>
+                            <input type="date" id="ledgerStartDate" onchange="filterAndLoadLedgerTable()">
+                        </div>
+                        <div class="filter-item">
+                            <label for="ledgerEndDate">End Date</label>
+                            <input type="date" id="ledgerEndDate" onchange="filterAndLoadLedgerTable()">
+                        </div>
                     </div>
                 </div>
 
@@ -1169,6 +1207,8 @@
         let allBills = {};
         let allCustomers = {};
         let systemSettings = { invoicePrefix: "INV-2026-", nextInvoiceNumber: 1 };
+        let activeFilteredBills = [];
+        let activeFilteredLedgerBills = [];
 
         window.onload = function () {
             // Setup default date to local time
@@ -1824,6 +1864,8 @@
                 matches.push({ id, ...bill });
             });
 
+            activeFilteredBills = matches;
+
             if (matches.length === 0) {
                 document.getElementById('table-empty-state').style.display = 'block';
                 return;
@@ -2292,10 +2334,94 @@
             document.getElementById('ledger-customer-total').textContent = '₹' + (customer.totalBusiness || 0).toFixed(2);
             document.getElementById('ledger-customer-pending').textContent = '₹' + (customer.remainingBalance || 0).toFixed(2);
 
+            // Reset filters to defaults
+            document.getElementById('ledgerFilterDateRange').value = 'all';
+            document.getElementById('ledgerFilterStatus').value = 'all';
+            document.getElementById('ledgerStartDate').value = '';
+            document.getElementById('ledgerEndDate').value = '';
+            document.getElementById('ledger-custom-date-inputs').style.display = 'none';
+
+            // Load table
+            filterAndLoadLedgerTable();
+
+            openModal('customerLedgerModal');
+        }
+
+        function handleLedgerDateFilterChange() {
+            const val = document.getElementById('ledgerFilterDateRange').value;
+            const customBox = document.getElementById('ledger-custom-date-inputs');
+            
+            if (val === 'custom') {
+                customBox.style.display = 'flex';
+            } else {
+                customBox.style.display = 'none';
+            }
+            filterAndLoadLedgerTable();
+        }
+
+        function filterAndLoadLedgerTable() {
+            if (!selectedCustomerPhoneForLedger) return;
+            const phone = selectedCustomerPhoneForLedger;
+            
             const tbody = document.getElementById('ledger-rows-body');
             tbody.innerHTML = '';
 
-            const matches = Object.values(allBills).filter(b => b.customerPhone === phone).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const dateRange = document.getElementById('ledgerFilterDateRange').value;
+            const statusFilter = document.getElementById('ledgerFilterStatus').value;
+            const startDateVal = document.getElementById('ledgerStartDate').value;
+            const endDateVal = document.getElementById('ledgerEndDate').value;
+
+            // Sort bills chronologically newest first
+            const customerBills = Object.values(allBills).filter(b => b.customerPhone === phone).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            const matches = [];
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+            
+            // Last month boundaries
+            const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+            const lastMonthVal = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+            const startOfLastMonth = new Date(lastMonthYear, lastMonthVal, 1).getTime();
+            const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).getTime();
+
+            // Indian Financial Year: April 1st to March 31st
+            let fyStartYear = now.getFullYear();
+            if (now.getMonth() < 3) fyStartYear--; // Jan-March is in previous year's FY
+            const startOfFY = new Date(fyStartYear, 3, 1).getTime();
+            const endOfFY = new Date(fyStartYear + 1, 2, 31, 23, 59, 59).getTime();
+
+            customerBills.forEach(bill => {
+                // 1. Status filter
+                if (statusFilter !== 'all' && bill.status !== statusFilter) return;
+
+                // 2. Date range filters
+                const billTime = new Date(bill.createdAt).getTime();
+                if (isNaN(billTime)) return;
+
+                if (dateRange === 'today') {
+                    if (billTime < startOfToday) return;
+                } else if (dateRange === 'month') {
+                    if (billTime < startOfMonth) return;
+                } else if (dateRange === 'last-month') {
+                    if (billTime < startOfLastMonth || billTime > endOfLastMonth) return;
+                } else if (dateRange === 'financial-year') {
+                    if (billTime < startOfFY || billTime > endOfFY) return;
+                } else if (dateRange === 'custom') {
+                    if (startDateVal) {
+                        const sTime = new Date(startDateVal + "T00:00:00").getTime();
+                        if (billTime < sTime) return;
+                    }
+                    if (endDateVal) {
+                        const eTime = new Date(endDateVal + "T23:59:59").getTime();
+                        if (billTime > eTime) return;
+                    }
+                }
+
+                matches.push(bill);
+            });
+
+            activeFilteredLedgerBills = matches;
 
             if (matches.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No records found.</td></tr>';
@@ -2314,8 +2440,6 @@
                     tbody.appendChild(tr);
                 });
             }
-
-            openModal('customerLedgerModal');
         }
 
         // --- Excel Exports Operations via SheetJS ---
@@ -2323,9 +2447,12 @@
             if (!selectedCustomerPhoneForLedger) return;
             const customer = allCustomers[selectedCustomerPhoneForLedger];
             
-            const customerBills = Object.values(allBills).filter(b => b.customerPhone === selectedCustomerPhoneForLedger);
+            if (activeFilteredLedgerBills.length === 0) {
+                showToast("No ledger records found to export.", "error");
+                return;
+            }
 
-            const rows = customerBills.map(b => ({
+            const rows = activeFilteredLedgerBills.map(b => ({
                 "Invoice No": b.invoiceNo,
                 "Date": new Date(b.createdAt).toLocaleDateString(),
                 "Subtotal": b.subtotal,
@@ -2398,6 +2525,14 @@
             }
 
             compileAndDownloadBillsExcel(matches, `Report_${sVal}_to_${eVal}.xlsx`);
+        }
+
+        function exportFilteredBillsExcel() {
+            if (!activeFilteredBills || activeFilteredBills.length === 0) {
+                showToast("No filtered invoices to export.", "error");
+                return;
+            }
+            compileAndDownloadBillsExcel(activeFilteredBills, "Filtered_Invoices_Report.xlsx");
         }
 
         function compileAndDownloadBillsExcel(billList, filename) {
