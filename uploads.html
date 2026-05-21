@@ -823,6 +823,20 @@
 
         // Upload image file to Firebase Storage or fallback to GitHub
         async function uploadImage(filename, dataUrl) {
+            // Prefer GitHub for photo storage if configured, to keep Firebase free
+            if (cfg.token && cfg.repo) {
+                try {
+                    const base64 = dataUrl.split(',')[1];
+                    const path = `images/${filename}`;
+                    const sha = await getFileSHA(path);
+                    const body = { message: `Add tracking photo: ${filename}`, content: base64, branch: cfg.branch };
+                    if (sha) body.sha = sha;
+                    await ghPut(`repos/${cfg.repo}/contents/${path}`, body);
+                    return `https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch}/${path}`;
+                } catch (ge) {
+                    console.warn("GitHub upload failed, falling back to Firebase Storage:", ge);
+                }
+            }
             if (firebaseStorage) {
                 try {
                     const ref = firebaseStorage.ref().child('images/' + filename);
@@ -830,16 +844,11 @@
                     const downloadUrl = await snapshot.ref.getDownloadURL();
                     return downloadUrl;
                 } catch (e) {
-                    console.error("Firebase Storage upload failed, falling back to GitHub:", e);
+                    console.error("Firebase Storage upload failed:", e);
+                    throw e;
                 }
             }
-            const base64 = dataUrl.split(',')[1];
-            const path = `images/${filename}`;
-            const sha = await getFileSHA(path);
-            const body = { message: `Add tracking photo: ${filename}`, content: base64, branch: cfg.branch };
-            if (sha) body.sha = sha;
-            await ghPut(`repos/${cfg.repo}/contents/${path}`, body);
-            return `https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch}/${path}`;
+            throw new Error("Neither GitHub nor Firebase Storage is configured/accessible.");
         }
 
         // records.json / Firebase DB helpers
@@ -1157,19 +1166,24 @@
                 const updated = records.filter(r => r.id !== id);
                 await pushRecordsJSON(updated, sha);
                 if (photoPath) {
-                    if (firebaseStorage) {
+                    let deletedFromGh = false;
+                    if (cfg.token && cfg.repo) {
+                        try {
+                            const fsha = await getFileSHA(photoPath);
+                            if (fsha) {
+                                await ghDel(`repos/${cfg.repo}/contents/${photoPath}`, { message: 'Delete photo', sha: fsha, branch: cfg.branch });
+                                deletedFromGh = true;
+                            }
+                        } catch (ge) {
+                            console.warn("Failed to delete photo from GitHub:", ge);
+                        }
+                    }
+                    if (!deletedFromGh && firebaseStorage) {
                         try {
                             await firebaseStorage.ref().child(photoPath).delete();
                         } catch (se) {
-                            console.warn("Firebase Storage photo delete failed, trying GitHub delete:", se);
-                            try {
-                                const fsha = await getFileSHA(photoPath);
-                                if (fsha) await ghDel(`repos/${cfg.repo}/contents/${photoPath}`, { message: 'Delete photo', sha: fsha, branch: cfg.branch });
-                            } catch (ge) {}
+                            console.warn("Firebase Storage photo delete failed:", se);
                         }
-                    } else {
-                        const fsha = await getFileSHA(photoPath);
-                        if (fsha) await ghDel(`repos/${cfg.repo}/contents/${photoPath}`, { message: 'Delete photo', sha: fsha, branch: cfg.branch });
                     }
                 }
                 toast('Record deleted', 'in');

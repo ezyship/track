@@ -265,7 +265,7 @@
 
         <div id="no-config-warning" class="alert-warning" style="display: none;">
             ⚠️ <strong>Firebase Configuration Required</strong><br>
-            Please expand "Firebase Config Setup" below and paste your project SDK settings to get started.
+            Please configure your Firebase credentials in <code>firebase-config.js</code> to enable portal access.
         </div>
 
         <form id="login-form" onsubmit="handleLogin(event)">
@@ -284,11 +284,22 @@
             </button>
         </form>
 
-        <div class="setup-toggle" onclick="toggleSetup()">Firebase Config Setup</div>
+        <div class="setup-toggle" onclick="toggleChangePassword()">🔑 Change Password</div>
 
-        <div id="setup-panel" class="setup-panel">
-            <textarea id="setup-raw" placeholder='Paste Firebase Config JS Snippet here... (e.g. const firebaseConfig = { apiKey: "...", ... })'></textarea>
-            <button class="btn-setup" onclick="saveFirebaseConfig()">Save Firebase Credentials</button>
+        <div id="change-password-panel" class="setup-panel">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="change-email">Email Address</label>
+                <input type="email" id="change-email" placeholder="admin@example.com" style="padding: 10px 12px; font-size: 14px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="change-current-password">Current Password</label>
+                <input type="password" id="change-current-password" placeholder="Current Password" style="padding: 10px 12px; font-size: 14px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="change-new-password">New Password</label>
+                <input type="password" id="change-new-password" placeholder="New Password" style="padding: 10px 12px; font-size: 14px;">
+            </div>
+            <button class="btn-setup" onclick="handleChangePassword()">Update Password</button>
         </div>
     </div>
 
@@ -351,46 +362,51 @@
             }
         }
 
-        function toggleSetup() {
-            const p = document.getElementById('setup-panel');
+        function toggleChangePassword() {
+            const p = document.getElementById('change-password-panel');
             p.style.display = (p.style.display === 'block') ? 'none' : 'block';
         }
 
-        function saveFirebaseConfig() {
-            const raw = document.getElementById('setup-raw').value;
-            if (!raw.trim()) {
-                showToast('Input cannot be empty.', 'error');
+        async function handleChangePassword() {
+            if (!firebaseInitialized) {
+                showToast('Firebase is not initialized yet.', 'error');
                 return;
             }
 
-            let config = null;
+            const email = document.getElementById('change-email').value.trim();
+            const currentPassword = document.getElementById('change-current-password').value;
+            const newPassword = document.getElementById('change-new-password').value;
 
-            // Parser logic
-            try {
-                // Remove javascript syntax to isolate object
-                const cleaned = raw.trim().replace(/^const\s+firebaseConfig\s*=\s*/i, '').replace(/;$/, '');
-                config = JSON.parse(cleaned);
-            } catch (e) {
-                // Regex fallback parser
-                const keys = ['apiKey', 'authDomain', 'databaseURL', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-                config = {};
-                keys.forEach(k => {
-                    const regex = new RegExp(`['"]?${k}['"]?\\s*:\\s*['"]([^'"]+)['"]`, 'i');
-                    const match = raw.match(regex);
-                    if (match) {
-                        config[k] = match[1];
-                    }
-                });
+            if (!email || !currentPassword || !newPassword) {
+                showToast('Please fill in all fields.', 'error');
+                return;
             }
 
-            if (config && config.apiKey) {
-                localStorage.setItem('firebaseConfig', JSON.stringify(config));
-                showToast('Firebase configuration saved successfully!', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                showToast('Could not parse config. Please verify keys and format.', 'error');
+            if (newPassword.length < 6) {
+                showToast('New password must be at least 6 characters.', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('#change-password-panel .btn-setup');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+
+            try {
+                const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, currentPassword);
+                const user = userCredential.user;
+                await user.updatePassword(newPassword);
+                showToast('Password updated successfully!', 'success');
+
+                document.getElementById('change-email').value = '';
+                document.getElementById('change-current-password').value = '';
+                document.getElementById('change-new-password').value = '';
+                toggleChangePassword();
+            } catch (err) {
+                console.error(err);
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Update Password';
             }
         }
     </script>

@@ -1,29 +1,17 @@
 // firebase-config.js
 // Central initialization configuration for Firebase Auth, Realtime Database, and Storage
 
-// Default empty config. Users can edit this directly or paste their config into the login page UI.
+// Default configuration. Hardcoded with the user's credentials.
 let firebaseConfig = {
-    apiKey: "",
-    authDomain: "",
-    databaseURL: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: "AIzaSyDcas4JHCS1kQ5P1DA-LEDjpqKtTf9WFrY",
+    authDomain: "ezyship-ca164.firebaseapp.com",
+    databaseURL: "https://ezyship-ca164-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ezyship-ca164",
+    storageBucket: "ezyship-ca164.firebasestorage.app",
+    messagingSenderId: "175667938863",
+    appId: "1:175667938863:web:f2d7960680a4945af0a8da",
+    measurementId: "G-TYNM5ZVK3L"
 };
-
-// Attempt to load credentials from localStorage if not configured above
-try {
-    const savedConfig = localStorage.getItem('firebaseConfig');
-    if (savedConfig) {
-        const parsed = JSON.parse(savedConfig);
-        if (parsed.apiKey) {
-            firebaseConfig = parsed;
-        }
-    }
-} catch (e) {
-    console.error("Failed to load Firebase configuration from localStorage", e);
-}
 
 let firebaseInitialized = false;
 if (firebaseConfig.apiKey) {
