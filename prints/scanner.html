@@ -5,6 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dispatch Scanner</title>
+    <style id="auth-guard-style">body { display: none !important; }</style>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="../firebase-config.js"></script>
+    <script>enforceAuth();</script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- HTML5 QR Code Library -->
@@ -257,6 +264,7 @@
         <a href="dispatched.html">📋 Dispatched</a>
         <a href="../uploads.html">📸 Upload Tracking</a>
         <a href="../search.html">🔎 Search Photos</a>
+        <a href="#" onclick="handleLogout(event)" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.08);">🚪 Logout</a>
     </nav>
 
     <div class="header">
