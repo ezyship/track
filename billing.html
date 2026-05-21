@@ -883,6 +883,7 @@
                         <label>Actions</label>
                         <div style="display:flex; gap:8px; height: 100%;">
                             <button class="btn btn-s btn-sm" style="flex:1;" onclick="printShippingLabelDirect()">🖨️ Print Shipping Label</button>
+                            <button class="btn btn-success btn-sm" style="flex:1;" onclick="viewSelectedCustomerExcel()">📊 View in Excel</button>
                         </div>
                     </div>
                 </div>
@@ -1162,6 +1163,7 @@
                                 <th>Amt Paid</th>
                                 <th>Amt Pending</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="ledger-rows-body">
@@ -1172,7 +1174,8 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-danger" onclick="deleteCustomerAccount()" style="margin-right: auto; background: var(--danger);">🗑️ Delete Customer</button>
-                <button class="btn btn-success" onclick="exportCustomerLedgerExcel()">📊 Export Ledger Excel</button>
+                <button class="btn btn-success" onclick="viewLedgerCustomerInExcel()">📊 View in Excel</button>
+                <button class="btn btn-success" onclick="exportCustomerLedgerExcel()">📥 Export Ledger Excel</button>
                 <button class="btn btn-s" onclick="closeModal('customerLedgerModal')">Close</button>
             </div>
         </div>
@@ -2127,13 +2130,19 @@
                     <td style="font-weight: 700;">${bill.invoiceNo}</td>
                     <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(bill.createdAt).toLocaleDateString()}</td>
                     <td>
-                        <strong style="color:#fff">${bill.customerName}</strong>
-                        <div style="font-size:0.8rem; color:var(--text-muted); cursor:pointer;" onclick="openCustomerLedger('${bill.customerPhone}')">📞 ${bill.customerPhone} (Ledger)</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <a href="online-excel.html?view=${bill.id}" title="View in Excel" style="text-decoration: none; font-size: 1.25rem;">📊</a>
+                            <div>
+                                <strong style="color:#fff">${bill.customerName}</strong>
+                                <div style="font-size:0.8rem; color:var(--text-muted); cursor:pointer;" onclick="openCustomerLedger('${bill.customerPhone}')">📞 ${bill.customerPhone} (Ledger)</div>
+                            </div>
+                        </div>
                     </td>
                     <td style="font-weight: 700; color:#fff">₹${bill.grandTotal.toFixed(2)}</td>
                     <td><span class="badge ${bill.status}">${bill.status.toUpperCase()}</span></td>
                     <td>
                         <div class="actions-group">
+                            <a href="online-excel.html?view=${bill.id}" class="btn-icon" title="View in Excel" style="text-decoration: none;">📊</a>
                             <button class="btn-icon" title="Edit Bill" onclick="loadBillForEditing('${bill.id}')">✏️</button>
                             <button class="btn-icon" title="Print Invoice" onclick="printInvoiceDirect('${bill.id}')">🖨️</button>
                             <button class="btn-icon" title="Download PDF" onclick="downloadInvoicePdf('${bill.id}')">📄</button>
@@ -2689,18 +2698,24 @@
             activeFilteredLedgerBills = matches;
 
             if (matches.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No records found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No records found.</td></tr>';
             } else {
                 matches.forEach(bill => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td style="font-weight:700;">${bill.invoiceNo}</td>
+                        <td style="font-weight:700; display: flex; align-items: center; gap: 6px;">
+                            <a href="online-excel.html?view=${bill.id}" title="View in Excel" style="text-decoration: none;">📊</a>
+                            <span>${bill.invoiceNo}</span>
+                        </td>
                         <td>${new Date(bill.createdAt).toLocaleDateString()}</td>
                         <td>${bill.gstType.toUpperCase()}</td>
                         <td>₹${bill.grandTotal.toFixed(2)}</td>
                         <td>₹${bill.amountPaid.toFixed(2)}</td>
                         <td style="color:${bill.amountPending > 0 ? 'var(--danger)' : 'var(--success)'};">₹${bill.amountPending.toFixed(2)}</td>
                         <td><span class="badge ${bill.status}">${bill.status.toUpperCase()}</span></td>
+                        <td>
+                            <a href="online-excel.html?view=${bill.id}" class="btn-icon" title="View in Excel" style="text-decoration: none;">📊</a>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -2739,6 +2754,20 @@
             
             XLSX.writeFile(wb, `Ledger_${customer.name.replace(/\s+/g, '_')}.xlsx`);
             showToast("Customer history ledger downloaded as Excel.", "success");
+        }
+
+        function viewSelectedCustomerExcel() {
+            const phone = document.getElementById('customerPhone').value.trim();
+            if (!phone) {
+                showToast("Please enter a customer phone number first.", "error");
+                return;
+            }
+            window.open(`online-excel.html?search=${encodeURIComponent(phone)}&tab=items`, '_blank');
+        }
+
+        function viewLedgerCustomerInExcel() {
+            if (!selectedCustomerPhoneForLedger) return;
+            window.open(`online-excel.html?search=${encodeURIComponent(selectedCustomerPhoneForLedger)}&tab=items`, '_blank');
         }
 
         function triggerMonthlyExcelDownload() {

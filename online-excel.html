@@ -865,9 +865,40 @@
 
         // Real-time synchronization
         if (db) {
+            let initialLoad = true;
             db.ref('bills').on('value', snap => {
                 allBills = snap.val() || {};
                 renderSpreadsheet();
+                
+                if (initialLoad) {
+                    initialLoad = false;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    
+                    const tabParam = urlParams.get('tab');
+                    if (tabParam) {
+                        switchTab(tabParam);
+                    }
+                    
+                    const searchParam = urlParams.get('search');
+                    if (searchParam) {
+                        document.getElementById('excelSearch').value = searchParam;
+                        renderSpreadsheet();
+                    }
+
+                    const viewId = urlParams.get('view');
+                    if (viewId) {
+                        let targetKey = null;
+                        if (allBills[viewId]) {
+                            targetKey = viewId;
+                        } else {
+                            targetKey = Object.keys(allBills).find(k => allBills[k].invoiceNo === viewId);
+                        }
+                        
+                        if (targetKey) {
+                            viewBillDetails(targetKey);
+                        }
+                    }
+                }
             });
 
             db.ref('customers').on('value', snap => {
