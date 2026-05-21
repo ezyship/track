@@ -343,6 +343,10 @@
             font-size: 0.9rem;
         }
 
+        .items-table input[type="date"] {
+            color-scheme: dark;
+        }
+
         .items-table input:focus {
             background: rgba(255,255,255,0.05);
             border-radius: 4px;
@@ -930,10 +934,11 @@
                 <table class="items-table" id="items-table">
                     <thead>
                         <tr>
-                            <th style="width: 50%;">Product Details</th>
-                            <th style="width: 15%; text-align: right;">Qty</th>
-                            <th style="width: 20%; text-align: right;">Rate (₹)</th>
-                            <th style="width: 20%; text-align: right;">Total (₹)</th>
+                            <th style="width: 20%;">Date</th>
+                            <th style="width: 35%;">Product Details</th>
+                            <th style="width: 12%; text-align: right;">Qty</th>
+                            <th style="width: 15%; text-align: right;">Rate (₹)</th>
+                            <th style="width: 13%; text-align: right;">Total (₹)</th>
                             <th style="width: 5%; text-align: center;"></th>
                         </tr>
                     </thead>
@@ -1433,13 +1438,29 @@
         }
 
         // --- Product Line item operations ---
-        function addInvoiceItemRow(name = "", qty = 1, rate = 0) {
+        function addInvoiceItemRow(name = "", qty = 1, rate = 0, date = "") {
             const tbody = document.getElementById('line-items-body');
             const rowId = 'row-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            
+            // Default to today if date not provided
+            let itemDateStr = date;
+            if (!itemDateStr) {
+                const invDateInput = document.getElementById('invoiceDate');
+                if (invDateInput && invDateInput.value) {
+                    itemDateStr = invDateInput.value.split('T')[0];
+                } else {
+                    itemDateStr = new Date().toISOString().split('T')[0];
+                }
+            } else {
+                itemDateStr = itemDateStr.split('T')[0];
+            }
             
             const tr = document.createElement('tr');
             tr.id = rowId;
             tr.innerHTML = `
+                <td>
+                    <input type="date" value="${itemDateStr}" class="item-date" required>
+                </td>
                 <td>
                     <div class="product-autocomplete-container">
                         <input type="text" placeholder="Enter product name / description" value="${name}" class="item-name" required onfocus="showProductSuggestions(this)" oninput="filterProductSuggestions(this)" autocomplete="off">
@@ -1801,13 +1822,16 @@
                 const pName = row.querySelector('.item-name').value.trim();
                 const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
                 const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                const itemDateInput = row.querySelector('.item-date');
+                const itemDate = itemDateInput ? itemDateInput.value : '';
                 
                 if (pName) {
                     items.push({
                         productName: pName,
                         quantity: qty,
                         rate: rate,
-                        total: qty * rate
+                        total: qty * rate,
+                        date: itemDate ? new Date(itemDate).toISOString() : new Date(invoiceDateVal).toISOString()
                     });
                 }
             });
@@ -1971,7 +1995,7 @@
             
             if (bill.items && bill.items.length > 0) {
                 bill.items.forEach(item => {
-                    addInvoiceItemRow(item.productName, item.quantity, item.rate);
+                    addInvoiceItemRow(item.productName, item.quantity, item.rate, item.date || bill.createdAt);
                 });
             } else {
                 addInvoiceItemRow();
