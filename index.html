@@ -552,7 +552,7 @@
 
             try {
                 // Try fetching from GitHub directly for latest data
-                const repo = 'ezytracks/shipment';
+                const repo = 'ezyship/track';
                 const branch = 'main';
                 let res = await fetch(`https://raw.githubusercontent.com/${repo}/${branch}/records.json?v=` + Date.now());
 
