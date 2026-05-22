@@ -526,6 +526,7 @@
                 <tr>
                     <th>Timestamp</th>
                     <th>Status</th>
+                    <th>Package ID</th>
                     <th>Address</th>
                     <th>Action</th>
                 </tr>
@@ -542,7 +543,7 @@
         // ========================================================================
         // ⚠️ IMPORTANT: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW ⚠️
         // ========================================================================
-        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxjfysWUdP_cysJyXwA5KfUfQuWEfS6HU4Zh2--kzSPzdWlfO0Mc1Mji2DkstX7xihWlg/exec";
+        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzk372u16Yt62Md6PlILSjZO8TunUqZHAmoG4q6bOKP7IW91IpIyA6wWdRYYyEAlrOB7A/exec";
         // Example: "https://script.google.com/macros/s/AKfycbx.../exec"
         
         // --- GITHUB DEFAULT CONFIG (Fallbacks for cross-device photo viewing) ---
@@ -658,6 +659,7 @@
                 tr.innerHTML = `
                     <td class="td-time">${displayDate}</td>
                     <td><span class="td-status">Dispatched</span></td>
+                    <td style="font-weight: 600; color: #60a5fa; white-space: nowrap;">${dispPkgId || 'N/A'}</td>
                     <td style="white-space: pre-wrap;">${dispAddress || 'N/A'}</td>
                     <td>
                         <button class="track-btn" onclick="openTracker(${rowIdx})">
@@ -899,14 +901,14 @@
                 }
             }
 
-            // 1. Try matching by Package ID first
+            // 1. Try matching by Package ID first (search newest first)
             if (cleanPkgId) {
-                foundRecord = githubRecords.find(r => r.pkgId && r.pkgId.trim().toUpperCase() === cleanPkgId);
+                foundRecord = [...githubRecords].reverse().find(r => r.pkgId && r.pkgId.trim().toUpperCase() === cleanPkgId);
             }
 
-            // 2. Fallback: match by last-5 phone or AWB digits if no pkgId match is found
+            // 2. Fallback: match by last-5 phone or AWB digits if no pkgId match is found (search newest first)
             if (!foundRecord && fallbackKey) {
-                foundRecord = githubRecords.find(r => {
+                foundRecord = [...githubRecords].reverse().find(r => {
                     const rPhoneClean = (r.phone || '').replace(/\D/g, '').slice(-5);
                     const rAwbClean = (r.awb || '').replace(/\W/g, '').slice(-5);
                     return (rPhoneClean && rPhoneClean === fallbackKey) || (rAwbClean && rAwbClean === fallbackKey);
