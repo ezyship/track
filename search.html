@@ -304,7 +304,8 @@
                     photo: data.photo,
                     status: data.status || 'Dispatched',
                     updateTime: data.updateTime,
-                    name: 'Local Record'
+                    name: 'Local Record',
+                    pkgId: data.pkgId || ''
                 });
             });
 
@@ -363,13 +364,14 @@
 
             if (loaded) {
                 dbRecords.forEach(r => {
-                    if (!allRecords.find(lr => lr.phone === r.phone)) {
+                    if (!allRecords.find(lr => lr.photo === r.photoUrl)) {
                         allRecords.push({
                             phone: r.phone,
                             photo: r.photoUrl,
                             status: 'Logged',
                             updateTime: r.uploadedAt,
-                            name: r.name
+                            name: r.name,
+                            pkgId: r.pkgId || ''
                         });
                     }
                 });
@@ -401,6 +403,7 @@
                     <img src="${data.photo}" class="card-photo" onclick="openMod('${data.photo}')" onerror="this.src='https://via.placeholder.com/400x250?text=No+Photo'">
                     <div class="card-content">
                         <div class="card-phone">${data.name ? data.name + ' — ' : ''}${data.phone}</div>
+                        ${data.pkgId ? `<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:5px;">📦 ID: ${data.pkgId}</div>` : ''}
                         <div class="card-status">${data.status}</div>
                         <span class="card-time">Updated: ${safeDateStr(data.updateTime)}</span>
                     </div>
@@ -413,7 +416,8 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allRecords.filter(r => 
                 r.phone.toLowerCase().includes(query) || 
-                (r.name && r.name.toLowerCase().includes(query))
+                (r.name && r.name.toLowerCase().includes(query)) ||
+                (r.pkgId && r.pkgId.toLowerCase().includes(query))
             );
             renderGrid(filtered);
         }

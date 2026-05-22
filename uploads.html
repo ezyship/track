@@ -914,7 +914,7 @@
                 r.onload = e => {
                     const dataUrl = e.target.result;
                     const pid = uid();
-                    const pObj = { id: pid, dataUrl, file: f, name: '', pincode: '', phone: '', awb: '', status: 'Scanning...' };
+                    const pObj = { id: pid, dataUrl, file: f, name: '', pincode: '', phone: '', awb: '', pkgId: '', status: 'Scanning...' };
                     pending.push(pObj);
                     renderGrid();
 
@@ -968,6 +968,14 @@
             if (!text) return;
             text = text.trim();
 
+            // Extract unique ID if present (e.g. PKG-K8J2F9)
+            let pkgMatch = text.match(/\bPKG-[A-Z0-9]+\b/i);
+            if (pkgMatch) {
+                pObj.pkgId = pkgMatch[0].toUpperCase();
+                // Remove the unique ID from text to prevent it from bleeding into the name or other fields
+                text = text.replace(pkgMatch[0], '').trim();
+            }
+
             let phMatch = text.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
             let pinMatch = text.match(/\b(\d{6})\b/);
 
@@ -1015,7 +1023,7 @@
                     const div = document.createElement('div');
                     div.className = 'pc'; div.id = `pc-${p.id}`;
                     div.innerHTML = `
-                        <div class="qr-status">${p.status}</div>
+                        <div class="qr-status">${p.status} ${p.pkgId ? `[${p.pkgId}]` : ''}</div>
                         <img id="img-${p.id}" src="${p.dataUrl}" alt="" onclick="openMod('${p.dataUrl}')" style="background:#000;">
                         <button class="rm" onclick="rmPending('${p.id}')">✕</button>
                         <div class="pb">
@@ -1023,6 +1031,7 @@
                             <div class="fg"><label>AWB / Tracking ID</label><input type="text" id="a-${p.id}" placeholder="Scan or type AWB" value="${p.awb || ''}" oninput="upd('${p.id}','awb',this.value)"></div>
                             <div class="fg"><label>Pincode</label><input type="text" id="p-${p.id}" placeholder="6-digit pincode" maxlength="6" value="${p.pincode}" oninput="upd('${p.id}','pincode',this.value)"></div>
                             <div class="fg"><label>Phone</label><input type="tel" id="ph-${p.id}" placeholder="Phone number" maxlength="11" value="${p.phone}" oninput="upd('${p.id}','phone',this.value)"></div>
+                            ${p.pkgId ? `<div class="fg" style="margin-bottom: 5px;"><span style="font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase;">Package ID</span><div style="font-size: 0.84rem; color: var(--txt); padding: 7px 9px; background: var(--inp); border-radius: 7px; border: 1px solid var(--bdr);">${p.pkgId}</div></div>` : ''}
                         </div>`;
                     g.appendChild(div);
                 } else { syncDOM(p); }
@@ -1084,16 +1093,16 @@
 
                 try {
                     const ts = new Date().toISOString();
-                    // Use last-5 digits of Phone OR AWB for filename linking
+                    // Use Package ID OR last-5 digits of Phone OR AWB for filename linking
                     const cleanPh = (p.phone || '').replace(/\D/g, '');
                     const ph5 = cleanPh.slice(-5);
                     const cleanAwb = (p.awb || '').replace(/\W/g, '');
                     const awb5 = cleanAwb.slice(-5);
-                    const prefixId = ph5 || awb5 || 'xxxxx';
+                    const prefixId = p.pkgId || ph5 || awb5 || 'xxxxx';
                     const safeName = (p.name || 'unknown').replace(/\s+/g, '_').slice(0, 15);
                     const fname = `${prefixId}_${Date.now()}_${safeName}.jpg`;
                     const url = await uploadImage(fname, p.dataUrl);
-                    const rec = { id: p.id, name: p.name, pincode: p.pincode, phone: p.phone, awb: p.awb, photoUrl: url, photoPath: `images/${fname}`, uploadedAt: ts };
+                    const rec = { id: p.id, name: p.name, pincode: p.pincode, phone: p.phone, awb: p.awb, pkgId: p.pkgId || '', photoUrl: url, photoPath: `images/${fname}`, uploadedAt: ts };
                     newRecords.push(rec);
                     item.className = 'up-item done';
                     item.querySelector('span:last-child').textContent = 'Photo Uploaded ✅';
@@ -1158,7 +1167,7 @@
       <img class="rthumb" src="${r.photoUrl}" alt="${r.name}" onclick="openMod('${r.photoUrl}')">
       <div class="rinfo">
         <strong>👤 ${r.name}</strong>
-        <div class="rmeta">📍 ${r.pincode} &nbsp;|&nbsp; 📞 ${r.phone} ${r.awb ? `&nbsp;|&nbsp; 🚚 ${r.awb}` : ''} &nbsp;|&nbsp; 🕐 ${fmtDate(r.uploadedAt)}</div>
+        <div class="rmeta">📍 ${r.pincode} &nbsp;|&nbsp; 📞 ${r.phone} ${r.awb ? `&nbsp;|&nbsp; 🚚 ${r.awb}` : ''} ${r.pkgId ? `&nbsp;|&nbsp; 📦 ${r.pkgId}` : ''} &nbsp;|&nbsp; 🕐 ${fmtDate(r.uploadedAt)}</div>
       </div>
       <button class="rdel" onclick="deleteRecord('${r.id}','${r.photoPath || ''}')" title="Delete">🗑</button>
     </div>`).join('');
