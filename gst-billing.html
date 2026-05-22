@@ -1293,7 +1293,23 @@
         function loadSellerConfig() {
             db.ref('billingSettings/sellerGstProfile').on('value', snap => {
                 if (snap.exists()) {
-                    sellerConfig = { ...sellerConfig, ...snap.val() };
+                    let data = snap.val() || {};
+                    let updated = false;
+                    if (data.name === "Zahera Silk Banaras") {
+                        data.name = "Digital Dukan";
+                        updated = true;
+                    }
+                    if (data.gstPrefix === "ZS/2026-27/") {
+                        data.gstPrefix = "DD/2026-27/";
+                        updated = true;
+                    }
+                    if (updated) {
+                        db.ref('billingSettings/sellerGstProfile').update({
+                            name: data.name,
+                            gstPrefix: data.gstPrefix
+                        });
+                    }
+                    sellerConfig = { ...sellerConfig, ...data };
                 } else {
                     // Seed standard
                     db.ref('billingSettings/sellerGstProfile').set(sellerConfig);
@@ -2602,11 +2618,6 @@
                 </head>
                 <body>
 
-                    <!-- Printable Actions Floating Panel -->
-                    <div class="no-print" style="margin-bottom: 15px; background: #f1f5f9; padding: 10px; border-radius: 8px; display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="window.print()" style="padding: 8px 18px; font-weight: bold; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">🖨️ Direct Print</button>
-                        <button onclick="window.close()" style="padding: 8px 18px; font-weight: bold; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer;">✕ Close Window</button>
-                    </div>
 
                     <!-- Outer Box -->
                     <table class="tally-box" cellpadding="0" cellspacing="0">
