@@ -641,6 +641,7 @@
         <a href="../uploads.html">📸 Upload Tracking</a>
         <a href="../search.html">🔎 Search Photos</a>
         <a href="../billing.html">🧾 Billing</a>
+        <a href="../customers.html">👤 Customers</a>
         <a href="../online-excel.html">📊 Online Excel</a>
         <a href="#" onclick="handleLogout(event)" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.08);">🚪 Logout</a>
     </nav>
@@ -1235,52 +1236,113 @@
                     return;
                 }
 
-                // Always create a NEW bill (never append to existing pending bills)
+                // Find the most recent pending bill for this customer (if any) and append to it.
+                // This ensures: after creating inv-02, all new entries go to inv-02;
+                // after creating inv-03, all new entries go to inv-03.
+                var activeBillId = null;
+                var activeBill = null;
+
+                var billsSnap = await firebaseDb.ref('bills').orderByChild('customerPhone').equalTo(phone).once('value');
+                if (billsSnap.exists()) {
+                    var bills = billsSnap.val();
+                    // Filter to only unpaid / partial bills
+                    var pendingBills = Object.entries(bills).filter(function(entry) {
+                        var b = entry[1];
+                        return b.status !== 'cancelled' && (b.status === 'unpaid' || b.status === 'partial');
+                    });
+                    if (pendingBills.length > 0) {
+                        // Sort by createdAt DESCENDING so the NEWEST bill is always picked
+                        pendingBills.sort(function(a, b) {
+                            return new Date(b[1].createdAt) - new Date(a[1].createdAt);
+                        });
+                        activeBillId = pendingBills[0][0];
+                        activeBill = pendingBills[0][1];
+                    }
+                }
+
                 var finalInvoiceNo;
                 var savedDate = new Date().toISOString();
 
-                // Increment invoice counter
-                await firebaseDb.ref('billingSettings/nextInvoiceNumber').transaction(function(val) {
-                    return (val || 1) + 1;
-                });
+                if (activeBill) {
+                    // ── Append to the NEWEST pending bill ──
+                    activeBill.items = activeBill.items || [];
+                    activeBill.items.push({
+                        productName: productName,
+                        quantity: qty,
+                        rate: rate,
+                        total: total,
+                        date: savedDate
+                    });
 
-                var nextNoFormatted = String(qbSettings.nextInvoiceNumber || 1).padStart(3, '0');
-                var invoiceNo = (qbSettings.invoicePrefix || 'INV-2026-') + nextNoFormatted;
+                    // Recalculate totals
+                    activeBill.subtotal = (parseFloat(activeBill.subtotal) || 0) + total;
+                    activeBill.grandTotal = activeBill.subtotal + (parseFloat(activeBill.extraCharges) || 0) - (parseFloat(activeBill.discount) || 0);
+                    activeBill.amountPaid = (parseFloat(activeBill.amountPaid) || 0) + paid;
+                    activeBill.amountPending = Math.max(0, activeBill.grandTotal - activeBill.amountPaid);
 
-                var items = [{
-                    productName: productName,
-                    quantity: qty,
-                    rate: rate,
-                    total: total,
-                    date: savedDate
-                }];
+                    if (activeBill.amountPending <= 0) {
+                        activeBill.status = 'paid';
+                        activeBill.paymentTimestamp = savedDate;
+                    } else if (activeBill.amountPaid === 0) {
+                        activeBill.status = 'unpaid';
+                    } else {
+                        activeBill.status = 'partial';
+                    }
 
-                var billPayload = {
-                    invoiceNo: invoiceNo,
-                    customerName: name,
-                    customerPhone: phone,
-                    customerAddress: address,
-                    customerGst: gst,
-                    createdAt: savedDate,
-                    updatedAt: savedDate,
-                    paymentTimestamp: status === 'paid' ? savedDate : null,
-                    items: items,
-                    subtotal: subtotal,
-                    gstType: 'non-gst',
-                    gstPercent: 0,
-                    gstAmount: 0,
-                    extraCharges: 0,
-                    discount: 0,
-                    grandTotal: grandTotal,
-                    amountPaid: paid,
-                    amountPending: amountPending,
-                    status: status,
-                    notes: notes || "Quick Bill saved from Shipping Printer"
-                };
+                    activeBill.updatedAt = savedDate;
+                    if (notes) {
+                        activeBill.notes = activeBill.notes ? (activeBill.notes + ' | ' + notes) : notes;
+                    } else {
+                        activeBill.notes = activeBill.notes || 'Quick Bill saved from Shipping Printer';
+                    }
 
-                var newBillRef = firebaseDb.ref('bills').push();
-                await newBillRef.set(billPayload);
-                finalInvoiceNo = invoiceNo;
+                    await firebaseDb.ref('bills/' + activeBillId).set(activeBill);
+                    finalInvoiceNo = activeBill.invoiceNo;
+
+                } else {
+                    // ── No pending bill exists — create a brand new one ──
+                    await firebaseDb.ref('billingSettings/nextInvoiceNumber').transaction(function(val) {
+                        return (val || 1) + 1;
+                    });
+
+                    var nextNoFormatted = String(qbSettings.nextInvoiceNumber || 1).padStart(3, '0');
+                    var invoiceNo = (qbSettings.invoicePrefix || 'INV-2026-') + nextNoFormatted;
+
+                    var items = [{
+                        productName: productName,
+                        quantity: qty,
+                        rate: rate,
+                        total: total,
+                        date: savedDate
+                    }];
+
+                    var billPayload = {
+                        invoiceNo: invoiceNo,
+                        customerName: name,
+                        customerPhone: phone,
+                        customerAddress: address,
+                        customerGst: gst,
+                        createdAt: savedDate,
+                        updatedAt: savedDate,
+                        paymentTimestamp: status === 'paid' ? savedDate : null,
+                        items: items,
+                        subtotal: subtotal,
+                        gstType: 'non-gst',
+                        gstPercent: 0,
+                        gstAmount: 0,
+                        extraCharges: 0,
+                        discount: 0,
+                        grandTotal: grandTotal,
+                        amountPaid: paid,
+                        amountPending: amountPending,
+                        status: status,
+                        notes: notes || 'Quick Bill saved from Shipping Printer'
+                    };
+
+                    var newBillRef = firebaseDb.ref('bills').push();
+                    await newBillRef.set(billPayload);
+                    finalInvoiceNo = invoiceNo;
+                }
 
                 // Update customer profile
                 await firebaseDb.ref('customers/' + phone).update({
