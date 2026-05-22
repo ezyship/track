@@ -1313,6 +1313,30 @@
         let activeFilteredBills = [];
         let activeFilteredLedgerBills = [];
         let forceNewBill = false; // When true, skip auto-loading pending bills for existing customers
+        let billsLoaded = false;
+        let customersLoaded = false;
+        let queryParamsProcessed = false;
+
+        // Robust sorting helpers
+        const getBillTimestamp = (bill) => {
+            if (!bill) return 0;
+            const t = bill.createdAt ? new Date(bill.createdAt).getTime() : 0;
+            return isNaN(t) ? 0 : t;
+        };
+        const compareBillsDescending = (a, b) => {
+            const timeA = getBillTimestamp(a);
+            const timeB = getBillTimestamp(b);
+            if (timeA !== timeB) return timeB - timeA;
+            const invA = a.invoiceNo || '';
+            const invB = b.invoiceNo || '';
+            return invB.localeCompare(invA);
+        };
+        const compareBillEntriesDescending = (a, b) => {
+            const timeA = getBillTimestamp(a[1]);
+            const timeB = getBillTimestamp(b[1]);
+            if (timeA !== timeB) return timeB - timeA;
+            return b[0].localeCompare(a[0]);
+        };
 
         window.onload = function () {
             // Setup default date to local time
@@ -1395,8 +1419,10 @@
                 } else {
                     allBills = {};
                 }
+                billsLoaded = true;
                 filterAndLoadBillsTable();
                 calculateDashboardAnalytics();
+                processQueryParams();
             });
         }
 
@@ -1407,8 +1433,61 @@
                 } else {
                     allCustomers = {};
                 }
+                customersLoaded = true;
                 calculateDashboardAnalytics();
+                processQueryParams();
             });
+        }
+
+        function processQueryParams() {
+            if (queryParamsProcessed) return;
+            if (!billsLoaded || !customersLoaded) return;
+            
+            queryParamsProcessed = true;
+            const urlParams = new URLSearchParams(window.location.search);
+            const editBillId = urlParams.get('editbill');
+            const newBillPhone = urlParams.get('newbill');
+            const phoneParam = urlParams.get('phone');
+
+            if (editBillId) {
+                if (allBills && allBills[editBillId]) {
+                    loadBillForEditing(editBillId);
+                } else {
+                    showToast("Requested bill not found", "error");
+                }
+            } else if (newBillPhone) {
+                const cust = allCustomers[newBillPhone];
+                if (cust) {
+                    document.getElementById('customerPhone').value = newBillPhone;
+                    document.getElementById('customerName').value = cust.name;
+                    document.getElementById('customerAddress').value = cust.address || '';
+                    document.getElementById('customerGst').value = cust.gst || '';
+                    
+                    forceNewBill = true; // start fresh new bill
+                    editingBillId = null;
+                    document.getElementById('invoice-editor-title').textContent = "🧾 New Bill — " + cust.name;
+                    updateNextInvoicePlaceholder();
+                    showToast(`New bill started for ${cust.name}. Add items and save.`, "success");
+                } else {
+                    document.getElementById('customerPhone').value = newBillPhone;
+                    forceNewBill = true;
+                    editingBillId = null;
+                    document.getElementById('invoice-editor-title').textContent = "🧾 New Bill";
+                    updateNextInvoicePlaceholder();
+                }
+            } else if (phoneParam) {
+                const cust = allCustomers[phoneParam];
+                if (cust) {
+                    document.getElementById('customerPhone').value = phoneParam;
+                    document.getElementById('customerName').value = cust.name;
+                    document.getElementById('customerAddress').value = cust.address || '';
+                    document.getElementById('customerGst').value = cust.gst || '';
+                    
+                    checkForPendingBill(phoneParam);
+                } else {
+                    document.getElementById('customerPhone').value = phoneParam;
+                }
+            }
         }
 
         // --- Dashboard Analytics Calculator ---
@@ -1779,11 +1858,12 @@
                 return b.customerPhone === phone && b.status !== 'cancelled' && (b.status === 'unpaid' || b.status === 'partial');
             });
             if (customerBills.length > 0) {
-                // Sort by date desc
-                customerBills.sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
+                // Sort by date desc using robust comparison helper
+                customerBills.sort(compareBillEntriesDescending);
                 const [billId, bill] = customerBills[0];
                 if (editingBillId !== billId) {
                     loadBillForEditing(billId);
+                    document.getElementById('invoice-editor-title').innerHTML = `✏️ Edit Invoice ${bill.invoiceNo} <span style="font-size: 0.65em; font-weight: normal; color: #d97706; background: #fef3c7; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; margin-left: 10px; display: inline-block; vertical-align: middle;">Auto-Loaded Pending (Click 'New Bill' to Start Fresh)</span>`;
                     showToast(`Pending invoice ${bill.invoiceNo} loaded automatically. You can now add/append items to it!`, "success");
                 }
             } else {
@@ -1873,8 +1953,8 @@
                         const pendingEntries = Object.entries(pendingSnap.val())
                             .filter(([k, b]) => b.status !== 'cancelled' &&
                                 (b.status === 'unpaid' || b.status === 'partial'))
-                            // Sort descending — newest pending bill first
-                            .sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
+                            // Sort descending — newest pending bill first using robust comparison helper
+                            .sort(compareBillEntriesDescending);
                         if (pendingEntries.length > 0) {
                             const [targetId, targetBill] = pendingEntries[0];
                             editingBillId = targetId;
@@ -2149,10 +2229,8 @@
 
             const matches = [];
 
-            // Sort bills chronologically newest first
-            const sortedBills = Object.entries(allBills).sort((a, b) => {
-                return new Date(b[1].createdAt) - new Date(a[1].createdAt);
-            });
+            // Sort bills chronologically newest first using robust comparison helper
+            const sortedBills = Object.entries(allBills).sort(compareBillEntriesDescending);
 
             const now = new Date();
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -2680,7 +2758,7 @@
                 // Find a bill for this customer phone to get the name
                 const lastBill = Object.values(allBills)
                     .filter(b => b.customerPhone === phone)
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+                    .sort(compareBillsDescending)[0];
                 
                 const name = lastBill ? `${lastBill.customerName} (Deleted Account)` : "Deleted Customer";
                 const gst = lastBill ? (lastBill.customerGst || 'N/A') : 'N/A';
@@ -2795,8 +2873,8 @@
             const startDateVal = document.getElementById('ledgerStartDate').value;
             const endDateVal = document.getElementById('ledgerEndDate').value;
 
-            // Sort bills chronologically newest first
-            const customerBills = Object.values(allBills).filter(b => b.customerPhone === phone).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            // Sort bills chronologically newest first using robust comparison helper
+            const customerBills = Object.values(allBills).filter(b => b.customerPhone === phone).sort(compareBillsDescending);
 
             const matches = [];
             const now = new Date();

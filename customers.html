@@ -495,6 +495,21 @@
     let ledgerPhone = null;
     let editingPhone = null; // null = adding new
 
+    // Robust sorting helpers
+    const getBillTimestamp = (bill) => {
+        if (!bill) return 0;
+        const t = bill.createdAt ? new Date(bill.createdAt).getTime() : 0;
+        return isNaN(t) ? 0 : t;
+    };
+    const compareBillsDescending = (a, b) => {
+        const timeA = getBillTimestamp(a);
+        const timeB = getBillTimestamp(b);
+        if (timeA !== timeB) return timeB - timeA;
+        const invA = a.invoiceNo || '';
+        const invB = b.invoiceNo || '';
+        return invB.localeCompare(invA);
+    };
+
     // ═══════════════ DATA LOADING ═══════════════
     window.onload = function () {
         if (!db) { showToast('Firebase not connected', 'error'); return; }
@@ -556,7 +571,15 @@
         else if (sortBy === 'outstanding-desc') list.sort((a, b) => (b.remainingBalance || 0) - (a.remainingBalance || 0));
         else if (sortBy === 'outstanding-asc')  list.sort((a, b) => (a.remainingBalance || 0) - (b.remainingBalance || 0));
         else if (sortBy === 'business-desc')    list.sort((a, b) => (b.totalBusiness || 0) - (a.totalBusiness || 0));
-        else if (sortBy === 'last-billing')     list.sort((a, b) => new Date(b.lastBillingDate || 0) - new Date(a.lastBillingDate || 0));
+        else if (sortBy === 'last-billing') {
+            list.sort((a, b) => {
+                const timeA = a.lastBillingDate ? new Date(a.lastBillingDate).getTime() : 0;
+                const timeB = b.lastBillingDate ? new Date(b.lastBillingDate).getTime() : 0;
+                const validA = isNaN(timeA) ? 0 : timeA;
+                const validB = isNaN(timeB) ? 0 : timeB;
+                return validB - validA;
+            });
+        }
 
         // Paginate
         const totalPages = Math.ceil(list.length / PAGE_SIZE);
@@ -714,7 +737,7 @@
         let bills = Object.entries(allBills)
             .filter(([k, b]) => b.customerPhone === ledgerPhone)
             .map(([k, b]) => ({ id: k, ...b }))
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            .sort(compareBillsDescending);
 
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();

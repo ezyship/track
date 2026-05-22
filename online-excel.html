@@ -1387,8 +1387,10 @@
 
             const items = bill.items || [];
             const sortedItems = [...items].sort((a, b) => {
-                const dateA = new Date(a.date || bill.createdAt).getTime();
-                const dateB = new Date(b.date || bill.createdAt).getTime();
+                const tA = new Date(a.date || bill.createdAt).getTime();
+                const tB = new Date(b.date || bill.createdAt).getTime();
+                const dateA = isNaN(tA) ? 0 : tA;
+                const dateB = isNaN(tB) ? 0 : tB;
                 return dateA - dateB;
             });
 
@@ -1605,8 +1607,10 @@
 
             const items = bill.items || [];
             const sortedItems = [...items].sort((a, b) => {
-                const dateA = new Date(a.date || bill.createdAt).getTime();
-                const dateB = new Date(b.date || bill.createdAt).getTime();
+                const tA = new Date(a.date || bill.createdAt).getTime();
+                const tB = new Date(b.date || bill.createdAt).getTime();
+                const dateA = isNaN(tA) ? 0 : tA;
+                const dateB = isNaN(tB) ? 0 : tB;
                 return dateA - dateB;
             });
 
