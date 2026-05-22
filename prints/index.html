@@ -1302,17 +1302,56 @@
                     // Recalculate totals
                     activeBill.subtotal = (parseFloat(activeBill.subtotal) || 0) + total;
                     activeBill.grandTotal = activeBill.subtotal + (parseFloat(activeBill.extraCharges) || 0) - (parseFloat(activeBill.discount) || 0);
-                    activeBill.amountPaid = (parseFloat(activeBill.amountPaid) || 0) + paid;
+                    
+                    // Recalculate payments
+                    var today = new Date().toLocaleDateString('en-CA');
+                    if (activeBill.payments && Array.isArray(activeBill.payments)) {
+                        if (paid > 0) {
+                            activeBill.payments.push({ amount: paid, date: today });
+                        }
+                    } else {
+                        var oldPaid = (parseFloat(activeBill.amountPaid) || 0);
+                        var payments = [];
+                        if (oldPaid > 0) {
+                            var oldDate = activeBill.paymentTimestamp ? activeBill.paymentTimestamp.split('T')[0] : (activeBill.createdAt ? activeBill.createdAt.split('T')[0] : today);
+                            payments.push({ amount: oldPaid, date: oldDate });
+                        }
+                        if (paid > 0) {
+                            payments.push({ amount: paid, date: today });
+                        }
+                        if (payments.length === 0) {
+                            payments.push({ amount: 0, date: today });
+                        }
+                        activeBill.payments = payments;
+                    }
+
+                    // Sum payments for amountPaid
+                    activeBill.amountPaid = activeBill.payments.reduce(function(sum, p) { return sum + (p.amount || 0); }, 0);
                     activeBill.amountPending = Math.max(0, activeBill.grandTotal - activeBill.amountPaid);
 
                     if (activeBill.amountPending <= 0) {
                         activeBill.status = 'paid';
-                        activeBill.paymentTimestamp = savedDate;
                     } else if (activeBill.amountPaid === 0) {
                         activeBill.status = 'unpaid';
                     } else {
                         activeBill.status = 'partial';
                     }
+
+                    // Find latest payment date in activeBill.payments as paymentTimestamp
+                    var latestPaymentDate = null;
+                    if (activeBill.payments && activeBill.payments.length > 0) {
+                        var latestMs = 0;
+                        activeBill.payments.forEach(function(pm) {
+                            if (pm.date) {
+                                var ms = new Date(pm.date).getTime();
+                                if (!isNaN(ms) && ms > latestMs) {
+                                    latestMs = ms;
+                                    latestPaymentDate = new Date(pm.date).toISOString();
+                                }
+                            }
+                        });
+                    }
+                    activeBill.paymentTimestamp = latestPaymentDate || (activeBill.status === 'paid' ? savedDate : (activeBill.paymentTimestamp || null));
 
                     activeBill.updatedAt = savedDate;
                     if (notes) {
@@ -1341,6 +1380,9 @@
                         date: savedDate
                     }];
 
+                    var today = new Date().toLocaleDateString('en-CA');
+                    var payments = [{ amount: paid, date: today }];
+
                     var billPayload = {
                         invoiceNo: invoiceNo,
                         customerName: name,
@@ -1349,7 +1391,7 @@
                         customerGst: gst,
                         createdAt: savedDate,
                         updatedAt: savedDate,
-                        paymentTimestamp: status === 'paid' ? savedDate : null,
+                        paymentTimestamp: status === 'paid' ? savedDate : (paid > 0 ? new Date().toISOString() : null),
                         items: items,
                         subtotal: subtotal,
                         gstType: 'non-gst',
@@ -1361,6 +1403,7 @@
                         amountPaid: paid,
                         amountPending: amountPending,
                         status: status,
+                        payments: payments,
                         notes: notes || 'Quick Bill saved from Shipping Printer'
                     };
 
