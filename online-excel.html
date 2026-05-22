@@ -850,6 +850,11 @@
                         <span>Amount Pending:</span>
                         <span id="mAmountPending"></span>
                     </div>
+                    <!-- Dynamic Payment Deposits Details Breakdown -->
+                    <div id="mPaymentsSection" style="margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 8px; display: none;">
+                        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">Deposits History</span>
+                        <div id="mPaymentsList" style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 4px;"></div>
+                    </div>
                 </div>
 
                 <!-- GST Download Option & Payment Status Modifier -->
@@ -873,6 +878,17 @@
                                 <div style="flex: 1;">
                                     <label for="mEditAmountPaid" style="font-size: 0.65rem; color: #64748b; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px;">Paid (₹)</label>
                                     <input type="number" id="mEditAmountPaid" oninput="onModalAmountPaidInput()" min="0" style="width: 100%; padding: 6px 10px; background: rgba(15, 23, 42, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.8rem; outline: none;">
+                                </div>
+                            </div>
+                            
+                            <!-- Dynamic Payments editor inside Modal Control -->
+                            <div id="mEditPaymentsSection" style="margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Payment Deposits</span>
+                                    <button type="button" onclick="addModalPaymentRow()" style="padding: 2px 6px; font-size: 0.7rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">+ Add</button>
+                                </div>
+                                <div id="mEditPaymentsList" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;">
+                                    <!-- rows go here -->
                                 </div>
                             </div>
                             
@@ -1362,6 +1378,7 @@
         }
 
         let activeViewBillId = null;
+        let modalPayments = [];
 
         function viewBillDetails(billId) {
             const bill = allBills[billId];
@@ -1452,6 +1469,33 @@
             document.getElementById('mAmountPaid').textContent = '₹' + (parseFloat(bill.amountPaid) || 0).toFixed(2);
             document.getElementById('mAmountPending').textContent = '₹' + (parseFloat(bill.amountPending) || 0).toFixed(2);
 
+            // Populate static list of payments
+            const paymentsListEl = document.getElementById('mPaymentsList');
+            const paymentsSectionEl = document.getElementById('mPaymentsSection');
+            if (paymentsListEl && paymentsSectionEl) {
+                paymentsListEl.innerHTML = '';
+                const pList = bill.payments && Array.isArray(bill.payments) ? bill.payments : [
+                    { amount: parseFloat(bill.amountPaid) || 0, date: bill.paymentTimestamp ? bill.paymentTimestamp.split('T')[0] : (bill.createdAt ? bill.createdAt.split('T')[0] : 'N/A') }
+                ];
+                
+                let hasActualPayment = pList.some(pm => pm.amount > 0);
+                if (hasActualPayment) {
+                    paymentsSectionEl.style.display = 'block';
+                    pList.forEach(pm => {
+                        if (pm.amount > 0) {
+                            const div = document.createElement('div');
+                            div.style.display = 'flex';
+                            div.style.justifyContent = 'space-between';
+                            div.style.color = '#e2e8f0';
+                            div.innerHTML = `<span>📅 ${pm.date}</span> <strong>₹${(pm.amount || 0).toFixed(2)}</strong>`;
+                            paymentsListEl.appendChild(div);
+                        }
+                    });
+                } else {
+                    paymentsSectionEl.style.display = 'none';
+                }
+            }
+
             // Populate modifiers
             document.getElementById('mEditStatus').value = bill.status || 'unpaid';
             document.getElementById('mEditAmountPaid').value = bill.amountPaid || 0;
@@ -1459,6 +1503,16 @@
             document.getElementById('mGstDownloadDetails').style.display = 'none';
             document.getElementById('mGstFirmName').value = bill.customerName || '';
             document.getElementById('mGstNumber').value = bill.customerGst || '';
+
+            // Load payments for editor
+            const today = new Date().toLocaleDateString('en-CA');
+            if (bill.payments && Array.isArray(bill.payments)) {
+                modalPayments = JSON.parse(JSON.stringify(bill.payments));
+            } else {
+                const fallbackDate = bill.paymentTimestamp ? bill.paymentTimestamp.split('T')[0] : (bill.createdAt ? bill.createdAt.split('T')[0] : today);
+                modalPayments = [{ amount: parseFloat(bill.amountPaid) || 0, date: fallbackDate }];
+            }
+            renderModalPaymentsEditor();
 
             document.getElementById('viewBillModal').classList.add('open');
         }
@@ -1473,6 +1527,100 @@
             document.getElementById('mGstDownloadDetails').style.display = applyGst ? 'flex' : 'none';
         }
 
+        function renderModalPaymentsEditor() {
+            const container = document.getElementById('mEditPaymentsList');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const amountPaidInput = document.getElementById('mEditAmountPaid');
+            amountPaidInput.readOnly = modalPayments.length > 1;
+
+            modalPayments.forEach((pm, index) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.gap = '6px';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '4px';
+
+                const amtInp = document.createElement('input');
+                amtInp.type = 'number';
+                amtInp.value = pm.amount;
+                amtInp.min = '0';
+                amtInp.step = '0.01';
+                amtInp.style.flex = '1';
+                amtInp.style.padding = '4px 6px';
+                amtInp.style.background = 'rgba(15, 23, 42, 0.6)';
+                amtInp.style.border = '1px solid rgba(255,255,255,0.1)';
+                amtInp.style.borderRadius = '4px';
+                amtInp.style.color = '#fff';
+                amtInp.style.fontSize = '0.78rem';
+                amtInp.oninput = (e) => {
+                    modalPayments[index].amount = parseFloat(e.target.value) || 0;
+                    updateMainAmountFromModalDeposits();
+                };
+
+                const dateInp = document.createElement('input');
+                dateInp.type = 'date';
+                dateInp.value = pm.date;
+                dateInp.style.flex = '1.2';
+                dateInp.style.padding = '4px 6px';
+                dateInp.style.background = 'rgba(15, 23, 42, 0.6)';
+                dateInp.style.border = '1px solid rgba(255,255,255,0.1)';
+                dateInp.style.borderRadius = '4px';
+                dateInp.style.color = '#fff';
+                dateInp.style.fontSize = '0.78rem';
+                dateInp.onchange = (e) => {
+                    modalPayments[index].date = e.target.value;
+                };
+
+                row.appendChild(amtInp);
+                row.appendChild(dateInp);
+
+                if (modalPayments.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.innerHTML = '🗑️';
+                    delBtn.style.background = 'none';
+                    delBtn.style.border = 'none';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.style.padding = '2px';
+                    delBtn.onclick = () => {
+                        modalPayments.splice(index, 1);
+                        renderModalPaymentsEditor();
+                        updateMainAmountFromModalDeposits();
+                    };
+                    row.appendChild(delBtn);
+                }
+
+                container.appendChild(row);
+            });
+        }
+
+        function addModalPaymentRow() {
+            const today = new Date().toLocaleDateString('en-CA');
+            modalPayments.push({ amount: 0, date: today });
+            renderModalPaymentsEditor();
+            updateMainAmountFromModalDeposits();
+        }
+
+        function updateMainAmountFromModalDeposits() {
+            const sum = modalPayments.reduce((acc, p) => acc + p.amount, 0);
+            document.getElementById('mEditAmountPaid').value = sum;
+            
+            // Sync status select box
+            const bill = allBills[activeViewBillId];
+            if (!bill) return;
+            const editStatus = document.getElementById('mEditStatus');
+            const grandTotal = parseFloat(bill.grandTotal) || 0;
+            if (sum >= grandTotal) {
+                editStatus.value = 'paid';
+            } else if (sum === 0) {
+                editStatus.value = 'unpaid';
+            } else {
+                editStatus.value = 'partial';
+            }
+        }
+
         function onModalStatusChange() {
             const status = document.getElementById('mEditStatus').value;
             const amountPaidInput = document.getElementById('mEditAmountPaid');
@@ -1483,6 +1631,18 @@
                 amountPaidInput.value = bill.grandTotal || 0;
             } else if (status === 'unpaid') {
                 amountPaidInput.value = 0;
+            }
+
+            // Sync to modalPayments if it has <= 1 elements
+            const paid = parseFloat(amountPaidInput.value) || 0;
+            const today = new Date().toLocaleDateString('en-CA');
+            if (modalPayments.length <= 1) {
+                if (modalPayments.length === 0) {
+                    modalPayments.push({ amount: paid, date: today });
+                } else {
+                    modalPayments[0].amount = paid;
+                }
+                renderModalPaymentsEditor();
             }
         }
 
@@ -1499,6 +1659,17 @@
             } else {
                 editStatus.value = 'partial';
             }
+
+            // Sync to modalPayments if it has <= 1 elements
+            const today = new Date().toLocaleDateString('en-CA');
+            if (modalPayments.length <= 1) {
+                if (modalPayments.length === 0) {
+                    modalPayments.push({ amount: amountPaid, date: today });
+                } else {
+                    modalPayments[0].amount = amountPaid;
+                }
+                renderModalPaymentsEditor();
+            }
         }
 
         async function updateBillPaymentStatus() {
@@ -1511,13 +1682,30 @@
             const newAmountPending = Math.max(0, parseFloat(bill.grandTotal || 0) - newAmountPaid);
             const savedDate = new Date().toISOString();
 
+            // Find latest payment date in modalPayments as the paymentTimestamp
+            let latestPaymentDate = null;
+            if (modalPayments.length > 0) {
+                let latestMs = 0;
+                modalPayments.forEach(pm => {
+                    if (pm.date) {
+                        const ms = new Date(pm.date).getTime();
+                        if (!isNaN(ms) && ms > latestMs) {
+                            latestMs = ms;
+                            latestPaymentDate = new Date(pm.date).toISOString();
+                        }
+                    }
+                });
+            }
+            const paymentTimestamp = latestPaymentDate || (newStatus === 'paid' ? savedDate : (bill.paymentTimestamp || null));
+
             try {
                 // Update local memory representation immediately for instant UI update
                 if (allBills[activeViewBillId]) {
                     allBills[activeViewBillId].status = newStatus;
                     allBills[activeViewBillId].amountPaid = newAmountPaid;
                     allBills[activeViewBillId].amountPending = newAmountPending;
-                    allBills[activeViewBillId].paymentTimestamp = newStatus === 'paid' ? savedDate : (bill.paymentTimestamp || null);
+                    allBills[activeViewBillId].paymentTimestamp = paymentTimestamp;
+                    allBills[activeViewBillId].payments = JSON.parse(JSON.stringify(modalPayments));
                     allBills[activeViewBillId].updatedAt = savedDate;
                 }
                 
@@ -1529,7 +1717,8 @@
                     status: newStatus,
                     amountPaid: newAmountPaid,
                     amountPending: newAmountPending,
-                    paymentTimestamp: newStatus === 'paid' ? savedDate : (bill.paymentTimestamp || null),
+                    paymentTimestamp: paymentTimestamp,
+                    payments: modalPayments,
                     updatedAt: savedDate
                 });
 

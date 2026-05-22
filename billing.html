@@ -991,6 +991,16 @@
                     <span>Amount Paid (₹):</span>
                     <input type="number" id="amountPaid" value="0" min="0" oninput="handleAmountPaidInput()">
                 </div>
+                <!-- Dynamic Payment Deposits List -->
+                <div id="multiple-payments-section" style="margin: 8px 0 12px 0; border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.01);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 600; font-size: 0.8rem; color: var(--text-muted);">Payment Deposits</span>
+                        <button type="button" onclick="addPaymentDepositRow()" style="padding: 2px 8px; font-size: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:600;">+ Add Deposit</button>
+                    </div>
+                    <div id="payment-deposits-list">
+                        <!-- Deposit rows will go here dynamically -->
+                    </div>
+                </div>
                 <div class="summary-line">
                     <span>Remaining Balance Pending:</span>
                     <span>₹<span id="label-amount-pending">0.00</span></span>
@@ -1314,6 +1324,7 @@
         let activeFilteredBills = [];
         let activeFilteredLedgerBills = [];
         let forceNewBill = false; // When true, skip auto-loading pending bills for existing customers
+        let activePayments = [];
         let billsLoaded = false;
         let customersLoaded = false;
         let queryParamsProcessed = false;
@@ -1345,6 +1356,11 @@
             
             // Add first empty item line row
             addInvoiceItemRow();
+            
+            // Initialize activePayments with one empty payment
+            const today = new Date().toLocaleDateString('en-CA');
+            activePayments = [{ amount: 0, date: today }];
+            renderPaymentDeposits();
             
             // Connect database
             if (db) {
@@ -1705,6 +1721,85 @@
             }
         });
 
+        function addPaymentDepositRow() {
+            activePayments.push({ amount: 0, date: new Date().toLocaleDateString('en-CA') });
+            renderPaymentDeposits();
+            updateMainAmountFromDeposits();
+        }
+
+        function renderPaymentDeposits() {
+            const container = document.getElementById('payment-deposits-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const amountPaidInput = document.getElementById('amountPaid');
+            amountPaidInput.readOnly = activePayments.length > 1;
+
+            activePayments.forEach((pm, index) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.gap = '8px';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '6px';
+
+                const amtInp = document.createElement('input');
+                amtInp.type = 'number';
+                amtInp.value = pm.amount;
+                amtInp.min = '0';
+                amtInp.step = '0.01';
+                amtInp.style.flex = '1';
+                amtInp.style.padding = '4px 8px';
+                amtInp.style.background = 'var(--input-bg)';
+                amtInp.style.border = '1px solid var(--border)';
+                amtInp.style.borderRadius = '6px';
+                amtInp.style.color = 'var(--text)';
+                amtInp.oninput = (e) => {
+                    activePayments[index].amount = parseFloat(e.target.value) || 0;
+                    updateMainAmountFromDeposits();
+                };
+
+                const dateInp = document.createElement('input');
+                dateInp.type = 'date';
+                dateInp.value = pm.date;
+                dateInp.style.flex = '1.2';
+                dateInp.style.padding = '4px 8px';
+                dateInp.style.background = 'var(--input-bg)';
+                dateInp.style.border = '1px solid var(--border)';
+                dateInp.style.borderRadius = '6px';
+                dateInp.style.color = 'var(--text)';
+                dateInp.onchange = (e) => {
+                    activePayments[index].date = e.target.value;
+                };
+
+                row.appendChild(amtInp);
+                row.appendChild(dateInp);
+
+                if (activePayments.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.innerHTML = '🗑️';
+                    delBtn.style.background = 'none';
+                    delBtn.style.border = 'none';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.style.padding = '4px';
+                    delBtn.onclick = () => {
+                        activePayments.splice(index, 1);
+                        renderPaymentDeposits();
+                        updateMainAmountFromDeposits();
+                    };
+                    row.appendChild(delBtn);
+                }
+
+                container.appendChild(row);
+            });
+        }
+
+        function updateMainAmountFromDeposits() {
+            const sum = activePayments.reduce((acc, p) => acc + p.amount, 0);
+            document.getElementById('amountPaid').value = sum.toFixed(2);
+            handleAmountPaidInput();
+        }
+
         function toggleGstSupport() {
             const type = document.getElementById('gstType').value;
             const gstGroup = document.getElementById('gst-percent-group');
@@ -1762,6 +1857,17 @@
                 amountPaidInput.value = "0";
             }
 
+            // Sync to activePayments if it has <= 1 elements
+            const today = new Date().toLocaleDateString('en-CA');
+            if (activePayments.length <= 1) {
+                if (activePayments.length === 0) {
+                    activePayments.push({ amount: paid, date: today });
+                } else {
+                    activePayments[0].amount = paid;
+                }
+                renderPaymentDeposits();
+            }
+
             const pending = validGrandTotal - paid;
             const validPending = pending < 0 ? 0 : pending;
             document.getElementById('label-amount-pending').textContent = validPending.toFixed(2);
@@ -1780,6 +1886,17 @@
             const pending = grandTotal - paid;
             document.getElementById('label-amount-pending').textContent = pending.toFixed(2);
 
+            // Sync to activePayments if it has <= 1 elements
+            const today = new Date().toLocaleDateString('en-CA');
+            if (activePayments.length <= 1) {
+                if (activePayments.length === 0) {
+                    activePayments.push({ amount: paid, date: today });
+                } else {
+                    activePayments[0].amount = paid;
+                }
+                renderPaymentDeposits();
+            }
+
             // Dynamically set status dropdown
             const statusDropdown = document.getElementById('paymentStatus');
             if (paid === 0) {
@@ -1795,15 +1912,30 @@
             const status = document.getElementById('paymentStatus').value;
             const grandTotal = parseFloat(document.getElementById('label-grand-total').textContent) || 0;
             const paidInput = document.getElementById('amountPaid');
+            const today = new Date().toLocaleDateString('en-CA');
             
             if (status === 'paid') {
                 paidInput.value = grandTotal.toFixed(2);
+                activePayments = [{ amount: grandTotal, date: today }];
             } else if (status === 'unpaid') {
                 paidInput.value = "0";
+                activePayments = [{ amount: 0, date: today }];
             } else if (status === 'cancelled') {
                 paidInput.value = "0";
+                activePayments = [{ amount: 0, date: today }];
+            } else if (status === 'partial') {
+                // If it was not already partial, make it a single payment of the current paid amount (or grand total / 2 as a placeholder if 0)
+                let currentPaid = parseFloat(paidInput.value) || 0;
+                if (currentPaid === 0 || currentPaid === grandTotal) {
+                    currentPaid = grandTotal / 2;
+                    paidInput.value = currentPaid.toFixed(2);
+                }
+                if (activePayments.length <= 1) {
+                    activePayments = [{ amount: currentPaid, date: today }];
+                }
             }
             
+            renderPaymentDeposits();
             calculateGrandTotal();
         }
 
@@ -1964,6 +2096,16 @@
                             // Prepend existing items so chronological order is maintained
                             const existingItems = Array.isArray(targetBill.items) ? targetBill.items : [];
                             items = [...existingItems, ...items];
+
+                            // Merge payments
+                            const existingPayments = Array.isArray(targetBill.payments) 
+                                ? targetBill.payments 
+                                : (targetBill.amountPaid ? [{ amount: targetBill.amountPaid, date: targetBill.paymentTimestamp ? targetBill.paymentTimestamp.split('T')[0] : targetBill.createdAt.split('T')[0] }] : []);
+                            const newPayments = activePayments.filter(p => p.amount > 0);
+                            activePayments = [...existingPayments, ...newPayments];
+                            if (activePayments.length === 0) {
+                                activePayments = [{ amount: 0, date: new Date().toLocaleDateString('en-CA') }];
+                            }
                         }
                     }
                 } catch (e) { /* lookup failed — fall through and create a new bill */ }
@@ -1972,7 +2114,44 @@
             const subtotal = items.reduce((acc, row) => acc + row.total, 0);
             const gstAmount = gstType === 'gst' ? (subtotal * (gstPercent / 100)) : 0;
             const grandTotal = subtotal + gstAmount + extraCharges - discount;
-            const amountPending = grandTotal - amountPaid;
+
+            // Recalculate amountPaid from activePayments sum
+            const totalAmountPaid = activePayments.reduce((sum, p) => sum + p.amount, 0);
+            // Cap totalAmountPaid to grandTotal
+            const cappedAmountPaid = totalAmountPaid > grandTotal ? grandTotal : totalAmountPaid;
+
+            const amountPending = grandTotal - cappedAmountPaid;
+
+            // Calculate overall paymentTimestamp as the date of the latest deposit
+            let latestPaymentTimestamp = null;
+            let resolvedStatus = paymentStatus;
+            if (paymentStatus !== 'cancelled') {
+                if (cappedAmountPaid === 0) {
+                    resolvedStatus = 'unpaid';
+                } else if (cappedAmountPaid >= grandTotal) {
+                    resolvedStatus = 'paid';
+                } else {
+                    resolvedStatus = 'partial';
+                }
+            }
+
+            if (resolvedStatus === 'paid' || resolvedStatus === 'partial') {
+                if (activePayments && activePayments.length > 0) {
+                    let latestDate = "";
+                    activePayments.forEach(pm => {
+                        if (pm.amount > 0 && pm.date > latestDate) {
+                            latestDate = pm.date;
+                        }
+                    });
+                    if (latestDate) {
+                        latestPaymentTimestamp = new Date(latestDate).toISOString();
+                    } else {
+                        latestPaymentTimestamp = new Date().toISOString();
+                    }
+                } else {
+                    latestPaymentTimestamp = new Date().toISOString();
+                }
+            }
 
             const billPayload = {
                 invoiceNo: invoiceNo,
@@ -1982,7 +2161,8 @@
                 customerGst: customerGst,
                 createdAt: billCreatedAt,
                 updatedAt: new Date().toISOString(),
-                paymentTimestamp: paymentStatus === 'paid' ? new Date().toISOString() : null,
+                paymentTimestamp: latestPaymentTimestamp,
+                payments: activePayments,
                 items: items,
                 subtotal: subtotal,
                 gstType: gstType,
@@ -1991,9 +2171,9 @@
                 extraCharges: extraCharges,
                 discount: discount,
                 grandTotal: grandTotal,
-                amountPaid: amountPaid,
-                amountPending: paymentStatus === 'cancelled' ? 0 : amountPending,
-                status: paymentStatus,
+                amountPaid: cappedAmountPaid,
+                amountPending: resolvedStatus === 'cancelled' ? 0 : amountPending,
+                status: resolvedStatus,
                 notes: notes
             };
 
@@ -2087,6 +2267,10 @@
             document.getElementById('line-items-body').innerHTML = "";
             addInvoiceItemRow();
             
+            const today = new Date().toLocaleDateString('en-CA');
+            activePayments = [{ amount: 0, date: today }];
+            renderPaymentDeposits();
+            
             toggleGstSupport();
             updateNextInvoicePlaceholder();
             document.getElementById('invoiceNo').readOnly = true;
@@ -2121,6 +2305,10 @@
             // Clear and reset product line items
             document.getElementById('line-items-body').innerHTML = "";
             addInvoiceItemRow();
+
+            const today = new Date().toLocaleDateString('en-CA');
+            activePayments = [{ amount: 0, date: today }];
+            renderPaymentDeposits();
 
             toggleGstSupport();
             updateNextInvoicePlaceholder();
@@ -2182,6 +2370,16 @@
             document.getElementById('amountPaid').value = bill.amountPaid || 0;
             document.getElementById('paymentStatus').value = bill.status || 'unpaid';
             document.getElementById('invoiceNotes').value = bill.notes || '';
+
+            // Load payments
+            const today = new Date().toLocaleDateString('en-CA');
+            if (bill.payments && Array.isArray(bill.payments)) {
+                activePayments = JSON.parse(JSON.stringify(bill.payments));
+            } else {
+                const fallbackDate = bill.paymentTimestamp ? bill.paymentTimestamp.split('T')[0] : (bill.createdAt ? bill.createdAt.split('T')[0] : today);
+                activePayments = [{ amount: bill.amountPaid || 0, date: fallbackDate }];
+            }
+            renderPaymentDeposits();
 
             calculateGrandTotal();
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2514,9 +2712,19 @@
                         </div>
                         <div class="bill-card">
                             <h3>Payment Summary</h3>
+                            <strong>Grand Total:</strong> ₹${bill.grandTotal.toFixed(2)}<br>
                             <strong>Amount Paid:</strong> ₹${bill.amountPaid.toFixed(2)}<br>
                             <strong>Outstanding Balance:</strong> ₹${bill.amountPending.toFixed(2)}<br>
-                            <strong>Payment Date:</strong> ${bill.paymentTimestamp ? new Date(bill.paymentTimestamp).toLocaleDateString() : 'Pending'}
+                            ${(bill.payments && bill.payments.length > 0) ? `
+                                <div style="margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 6px;">
+                                    <strong>Deposits:</strong>
+                                    <ul style="margin: 4px 0 0 0; padding-left: 16px; font-size: 13px;">
+                                        ${bill.payments.map(p => `<li>₹${p.amount.toFixed(2)} on ${new Date(p.date).toLocaleDateString()}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : `
+                                <strong>Payment Date:</strong> ${bill.paymentTimestamp ? new Date(bill.paymentTimestamp).toLocaleDateString() : 'Pending'}
+                            `}
                         </div>
                     </div>
 
@@ -2642,7 +2850,25 @@
                 doc.setTextColor(71, 85, 105);
                 doc.text("Total Amount Paid: INR " + bill.amountPaid.toFixed(2), 110, 52);
                 doc.text("Balance Outstanding: INR " + bill.amountPending.toFixed(2), 110, 58);
-                doc.text("Last Updated: " + new Date(bill.updatedAt).toLocaleDateString(), 110, 64);
+                
+                let nextInfoY = 64;
+                if (bill.payments && bill.payments.length > 0) {
+                    doc.setFont("Helvetica", "bold");
+                    doc.text("Deposits:", 110, nextInfoY);
+                    doc.setFont("Helvetica", "normal");
+                    nextInfoY += 5;
+                    bill.payments.forEach(p => {
+                        doc.text(`- Rs. ${p.amount.toFixed(2)} on ${new Date(p.date).toLocaleDateString()}`, 115, nextInfoY);
+                        nextInfoY += 5;
+                    });
+                    doc.text("Last Updated: " + new Date(bill.updatedAt).toLocaleDateString(), 110, nextInfoY);
+                    nextInfoY += 5;
+                } else {
+                    doc.text("Payment Date: " + (bill.paymentTimestamp ? new Date(bill.paymentTimestamp).toLocaleDateString() : 'Pending'), 110, nextInfoY);
+                    nextInfoY += 6;
+                    doc.text("Last Updated: " + new Date(bill.updatedAt).toLocaleDateString(), 110, nextInfoY);
+                    nextInfoY += 6;
+                }
 
                 // Items list compiles as autotable
                 const tableBody = bill.items.map((item, index) => [
@@ -2653,8 +2879,9 @@
                     "Rs. " + item.total.toFixed(2)
                 ]);
 
+                let startTableY = Math.max(85, nextInfoY + 8);
                 doc.autoTable({
-                    startY: 85,
+                    startY: startTableY,
                     head: [['S.No', 'Product Details', 'Qty', 'Rate', 'Total']],
                     body: tableBody,
                     theme: 'striped',

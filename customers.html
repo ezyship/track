@@ -820,6 +820,16 @@
     async function changeInvoiceStatus(billId, newStatus) {
         const bill = allBills[billId];
         if (!bill) return;
+
+        // If the bill has multiple payment deposits, warn the user
+        let hasMultiplePayments = bill.payments && Array.isArray(bill.payments) && bill.payments.length > 1;
+        if (hasMultiplePayments) {
+            if (!confirm("This invoice has multiple deposits recorded. Changing payment status/amount here will consolidate them into a single deposit. Do you want to continue?")) {
+                if (ledgerPhone) renderLedgerTable();
+                return;
+            }
+        }
+
         try {
             let amountPaid    = parseFloat(bill.amountPaid || 0);
             let amountPending = parseFloat(bill.amountPending || 0);
@@ -856,11 +866,18 @@
                 }
             }
 
+            const today = new Date().toLocaleDateString('en-CA');
+            const updatedPayments = [{
+                amount: amountPaid,
+                date: today
+            }];
+
             await db.ref(`bills/${billId}`).update({
                 status: statusToSave,
                 amountPaid,
                 amountPending,
                 paymentTimestamp: statusToSave === 'paid' ? new Date().toISOString() : (bill.paymentTimestamp || null),
+                payments: updatedPayments,
                 updatedAt: new Date().toISOString()
             });
             await syncLedger(bill.customerPhone);
@@ -873,6 +890,15 @@
     async function editPaidAmount(billId) {
         const bill = allBills[billId];
         if (!bill) return;
+
+        // If the bill has multiple payment deposits, warn the user
+        let hasMultiplePayments = bill.payments && Array.isArray(bill.payments) && bill.payments.length > 1;
+        if (hasMultiplePayments) {
+            if (!confirm("This invoice has multiple deposits recorded. Changing payment status/amount here will consolidate them into a single deposit. Do you want to continue?")) {
+                return;
+            }
+        }
+
         try {
             const grandTotal  = parseFloat(bill.grandTotal || 0);
             const currentPaid = parseFloat(bill.amountPaid || 0);
@@ -891,11 +917,18 @@
                 newStatus = 'paid';
             }
 
+            const today = new Date().toLocaleDateString('en-CA');
+            const updatedPayments = [{
+                amount: parsed,
+                date: today
+            }];
+
             await db.ref(`bills/${billId}`).update({
                 status: newStatus,
                 amountPaid: parsed,
                 amountPending: Math.max(0, grandTotal - parsed),
                 paymentTimestamp: newStatus === 'paid' ? new Date().toISOString() : (bill.paymentTimestamp || null),
+                payments: updatedPayments,
                 updatedAt: new Date().toISOString()
             });
             await syncLedger(bill.customerPhone);
