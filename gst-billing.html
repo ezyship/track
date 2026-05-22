@@ -814,7 +814,7 @@
             </div>
 
             <!-- Tally ERP Dispatch Grid -->
-            <div style="border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.01)">
+            <div id="dispatch-info-panel" style="border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.01); display: none;">
                 <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">📦 Dispatch & Transport Information</div>
                 
                 <div class="form-row">
@@ -1050,7 +1050,7 @@
             <div style="display:flex; flex-direction:column; gap:15px;">
                 <div class="form-group" style="margin-bottom:0;">
                     <label for="setSellerName">Seller Business Name</label>
-                    <input type="text" id="setSellerName" placeholder="e.g. Zahera Silk Banaras">
+                    <input type="text" id="setSellerName" placeholder="e.g. Digital Dukan">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label for="setSellerGst">Seller GSTIN</label>
@@ -1077,7 +1077,7 @@
                     <div class="form-row" style="margin-bottom:0;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label for="setGstPrefix">GST Invoice Prefix</label>
-                            <input type="text" id="setGstPrefix" placeholder="e.g. ZS/2026-27/">
+                            <input type="text" id="setGstPrefix" placeholder="e.g. DD/2026-27/">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label for="setGstNextNo">Next Sequence No.</label>
@@ -1151,12 +1151,12 @@
 
         // Default Seller Profile Config (backed by firebase Settings)
         let sellerConfig = {
-            name: "Zahera Silk Banaras",
+            name: "Digital Dukan",
             gstin: "08AOVPG0169D1ZV",
             address: "Bheru Gali, Rampura Bazar, Kota, Rajasthan - 324006",
             state: "Rajasthan",
             stateCode: "08",
-            gstPrefix: "ZS/2026-27/",
+            gstPrefix: "DD/2026-27/",
             gstNextNo: 1
         };
 
@@ -1305,7 +1305,7 @@
         function updateNextInvoicePlaceholder() {
             if (!editingBillId) {
                 const nextNoStr = String(sellerConfig.gstNextNo).padStart(3, '0');
-                document.getElementById('invoiceNo').value = (sellerConfig.gstPrefix || "ZS/2026-27/") + nextNoStr;
+                document.getElementById('invoiceNo').value = (sellerConfig.gstPrefix || "DD/2026-27/") + nextNoStr;
             }
         }
 
@@ -2164,7 +2164,7 @@
             document.getElementById('setSellerState').value = sellerConfig.state;
             document.getElementById('setSellerStateCode').value = sellerConfig.stateCode;
             document.getElementById('setSellerAddress').value = sellerConfig.address;
-            document.getElementById('setGstPrefix').value = sellerConfig.gstPrefix || "ZS/2026-27/";
+            document.getElementById('setGstPrefix').value = sellerConfig.gstPrefix || "DD/2026-27/";
             document.getElementById('setGstNextNo').value = sellerConfig.gstNextNo || 1;
 
             openModal('sellerSettingsModal');
@@ -2236,7 +2236,7 @@
             }
 
             const seller = bill.seller || {
-                name: "Zahera Silk Banaras",
+                name: "Digital Dukan",
                 gstin: "08AOVPG0169D1ZV",
                 address: "Bheru Gali, Rampura Bazar, Kota, Rajasthan - 324006",
                 state: "Rajasthan",
@@ -2623,39 +2623,16 @@
                                 <div><span class="bold">State Name:</span> ${seller.state}, <span class="bold">Code:</span> ${seller.stateCode}</div>
                             </td>
                             <td colspan="2" style="width: 50%; padding:0;">
-                                <table class="details-table" style="border:none;">
+                                <table class="details-table" style="border:none; height: 100%;">
                                     <tr>
-                                        <td style="width:50%; border-top:none; border-left:none;" class="border-right">
+                                        <td style="width:50%; border-top:none; border-left:none; border-bottom:none;" class="border-right">
                                             <span class="bold">Invoice No:</span><br>
                                             <span class="bold" style="font-size: 11px; color:#111;">${bill.invoiceNo}</span>
                                         </td>
-                                        <td style="width:50%; border-top:none; border-right:none;">
+                                        <td style="width:50%; border-top:none; border-right:none; border-bottom:none;">
                                             <span class="bold">Dated:</span><br>
                                             <span>${new Date(bill.createdAt).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
                                         </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="border-right" style="border-left:none;"><span class="bold">Delivery Note:</span><br><span>${dispatch.deliveryNote || '—'}</span></td>
-                                        <td style="border-right:none;"><span class="bold">Mode/Terms of Payment:</span><br><span>${dispatch.paymentMode || '—'}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="border-right" style="border-left:none;"><span class="bold">Reference No. & Date:</span><br><span>${dispatch.refNo || '—'}</span></td>
-                                        <td style="border-right:none;"><span class="bold">Other References:</span><br><span>${dispatch.otherRef || '—'}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="border-right" style="border-left:none;"><span class="bold">Buyer's Order No:</span><br><span>${dispatch.orderNo || '—'}</span></td>
-                                        <td style="border-right:none;"><span class="bold">Dated:</span><br><span>${dispatch.orderDate ? new Date(dispatch.orderDate).toLocaleDateString('en-IN') : '—'}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="border-right" style="border-left:none;"><span class="bold">Dispatch Doc No:</span><br><span>${dispatch.dispatchDocNo || '—'}</span></td>
-                                        <td style="border-right:none;"><span class="bold">Delivery Note Date:</span><br><span>${dispatch.dispatchDate ? new Date(dispatch.dispatchDate).toLocaleDateString('en-IN') : '—'}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="border-right" style="border-left:none;"><span class="bold">Dispatched through:</span><br><span>${dispatch.dispatchedThrough || '—'}</span></td>
-                                        <td style="border-right:none;"><span class="bold">Destination:</span><br><span>${dispatch.destination || '—'}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" style="border-bottom:none; border-left:none; border-right:none;"><span class="bold">Terms of Delivery:</span><br><span>${dispatch.termsOfDelivery || '—'}</span></td>
                                     </tr>
                                 </table>
                             </td>
@@ -2781,8 +2758,7 @@
                             <td colspan="4" style="padding:0;">
                                 <div class="bottom-flex">
                                     <div class="bottom-left-col">
-                                        <div><span class="bold">Company's PAN:</span> <span class="bold" style="letter-spacing:0.5px;">${companyPan}</span></div>
-                                        <div style="margin-top: 10px; font-size: 9.5px; line-height: 1.4; color:#333;">
+                                        <div style="font-size: 9.5px; line-height: 1.4; color:#333;">
                                             <span class="bold">Declaration:</span><br>
                                             We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
                                         </div>
