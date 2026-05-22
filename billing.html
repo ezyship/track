@@ -890,6 +890,7 @@
                     <div class="form-group">
                         <label>Actions</label>
                         <div style="display:flex; gap:8px; height: 100%; flex-wrap: wrap;">
+                            <button class="btn btn-p btn-sm" style="flex:1; min-width: 100px;" onclick="newBillForExistingCustomer()">➕ New Bill</button>
                             <button class="btn btn-s btn-sm" style="flex:1; min-width: 100px;" onclick="printShippingLabelDirect()">🖨️ Print Label</button>
                             <button class="btn btn-success btn-sm" style="flex:1; min-width: 100px;" onclick="viewSelectedCustomerExcel()">📊 View Excel</button>
                             <button class="btn btn-danger btn-sm" style="flex:1; min-width: 100px; background: var(--danger);" onclick="deleteActiveCustomerAccount()">🗑️ Delete Account</button>
@@ -1973,6 +1974,50 @@
             toggleGstSupport();
             updateNextInvoicePlaceholder();
             document.getElementById('invoiceNo').readOnly = true;
+        }
+
+        // --- Create a fresh new bill for an already-loaded/existing customer ---
+        function newBillForExistingCustomer() {
+            const phone = document.getElementById('customerPhone').value.trim();
+            const name = document.getElementById('customerName').value.trim();
+            const address = document.getElementById('customerAddress').value.trim();
+            const gst = document.getElementById('customerGst').value.trim();
+
+            if (!phone || !name) {
+                showToast("Please select or enter a customer first.", "error");
+                return;
+            }
+
+            // Save customer details before resetting
+            editingBillId = null;
+            document.getElementById('invoice-editor-title').textContent = "🧾 New Bill — " + name;
+
+            // Reset only invoice-specific fields; keep customer details intact
+            document.getElementById('extraCharges').value = "0";
+            document.getElementById('discount').value = "0";
+            document.getElementById('amountPaid').value = "0";
+            document.getElementById('invoiceNotes').value = "";
+            document.getElementById('gstType').value = "non-gst";
+            document.getElementById('paymentStatus').value = "unpaid";
+
+            setDefaultDate();
+
+            // Clear and reset product line items
+            document.getElementById('line-items-body').innerHTML = "";
+            addInvoiceItemRow();
+
+            toggleGstSupport();
+            updateNextInvoicePlaceholder();
+            document.getElementById('invoiceNo').readOnly = true;
+
+            // Restore customer info (in case clearBillScreen or something wiped it)
+            document.getElementById('customerPhone').value = phone;
+            document.getElementById('customerName').value = name;
+            document.getElementById('customerAddress').value = address;
+            document.getElementById('customerGst').value = gst;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast(`New bill started for ${name}. Add items and save.`, "success");
         }
 
         // --- Edit invoice mode loader ---
