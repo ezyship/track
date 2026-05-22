@@ -376,6 +376,13 @@
             } catch (e) {
                 // If it's not our JSON format, extract structured fields (phone, pincode, name, address)
                 let text = decodedText.trim();
+                let pkgMatch = text.match(/\bPKG-[A-Z0-9]+\b/i);
+                let pkgId = '';
+                if (pkgMatch) {
+                    pkgId = pkgMatch[0].toUpperCase();
+                    text = text.replace(pkgMatch[0], '').trim();
+                }
+
                 let phMatch = text.match(/(?:(?:\+|00)?91[\s-]?)?(?:0[\s-]?)?\b(\d{5}[\s-]?\d{5}|\d{10})\b/);
                 let pinMatch = text.match(/\b(\d{6})\b/);
                 
@@ -398,7 +405,8 @@
                     phone: phone,
                     pincode: pincode,
                     address: text, // Keep full text as address fallback
-                    rawText: text
+                    rawText: decodedText.trim(),
+                    pkgId: pkgId
                 };
             }
 

@@ -742,8 +742,14 @@
             var grid = document.getElementById('grid');
             var box = document.createElement('div');
             box.className = 'addr-box';
+            
+            // Generate a short unique package ID
+            var uniqueId = 'PKG-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+            box.setAttribute('data-unique-id', uniqueId);
+            
             box.innerHTML =
                 '<div class="box-topbar">' +
+                '<span class="pkg-id-label" style="font-size:11px;font-weight:700;color:#94a3b8;">' + uniqueId + '</span>' +
                 '<div class="box-actions">' +
                 '<button class="lock-btn" onclick="toggleLock(this)">Lock</button>' +
                 '<button class="bill-btn" onclick="openQuickBill(this)">💵 Bill</button>' +
@@ -864,11 +870,12 @@
                     if (textLines[i].trim()) { name = textLines[i].trim(); break; }
                 }
 
-                // Generate QR code — short payload only (name+phone+pincode)
+                // Generate QR code — short payload only (name+phone+pincode+uniqueId)
                 // Wrapped in try/catch so a long address NEVER crashes the loop
                 var qrDataUrl = '';
+                var boxUniqueId = box.getAttribute('data-unique-id') || ('PKG-' + Date.now().toString(36).toUpperCase());
                 try {
-                    var qrText = (name + ' ' + phone + ' ' + pincode).trim();
+                    var qrText = (name + ' ' + phone + ' ' + pincode + ' ' + boxUniqueId).trim();
                     if (qrText.length < 3) qrText = plainText.substring(0, 100);
                     var qrContainer = document.createElement('div');
                     new QRCode(qrContainer, {
@@ -892,7 +899,7 @@
                     '<div class="page">' +
                     '<div class="body-row">' +
                     '<div class="content" style="font-size:' + size + ';text-align:' + align + '">' + content + '</div>' +
-                    (qrDataUrl ? '<div class="qr-img"><img src="' + qrDataUrl + '" width="100" height="100"/></div>' : '') +
+                    (qrDataUrl ? '<div class="qr-img" style="text-align:center;"><img src="' + qrDataUrl + '" width="100" height="100"/><div style="font-size:10px;font-weight:bold;margin-top:4px;color:#444;">' + boxUniqueId + '</div></div>' : '') +
                     '</div>' +
                     '<div class="note"><em>&#9888;&#65039; Important : Unboxing video required for any claim.</em></div>' +
                     '</div>'
@@ -932,12 +939,13 @@
                 var phone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
                 var pincode = (text.match(/\b\d{6}\b/) || [''])[0];
                 var name = text.split('\n').find(function (l) { return l.trim(); }) || '';
+                var boxUniqueId = boxes[b].closest('.addr-box')?.getAttribute('data-unique-id') || ('PKG-' + Date.now().toString(36).toUpperCase());
                 var qrUrl = null;
 
                 try {
                     var qDiv = document.createElement('div');
                     new QRCode(qDiv, {
-                        text: name + ' ' + phone + ' ' + pincode,
+                        text: name + ' ' + phone + ' ' + pincode + ' ' + boxUniqueId,
                         width: 512, height: 512, correctLevel: QRCode.CorrectLevel.M
                     });
                     await new Promise(function (r) { setTimeout(r, 60); });
@@ -949,8 +957,14 @@
                 var blockH = Math.max(lines.length * 6, qrSz) + 15;
 
                 if (y + blockH > maxH && y !== 10) { doc.addPage(); y = 10; }
+                
+                doc.setFontSize(14);
                 doc.text(lines, 10, y + 5);
-                if (qrUrl) doc.addImage(qrUrl, 'PNG', qrX, y, qrSz, qrSz);
+                if (qrUrl) {
+                    doc.addImage(qrUrl, 'PNG', qrX, y, qrSz, qrSz);
+                    doc.setFontSize(8);
+                    doc.text(boxUniqueId, qrX + (qrSz / 2), y + qrSz + 4, { align: 'center' });
+                }
                 y += blockH;
             }
 
