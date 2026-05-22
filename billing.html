@@ -1311,6 +1311,7 @@
         let systemSettings = { invoicePrefix: "INV-2026-", nextInvoiceNumber: 1 };
         let activeFilteredBills = [];
         let activeFilteredLedgerBills = [];
+        let forceNewBill = false; // When true, skip auto-loading pending bills for existing customers
 
         window.onload = function () {
             // Setup default date to local time
@@ -1769,6 +1770,10 @@
 
         function checkForPendingBill(phone) {
             if (!phone || !allBills) return;
+            
+            // If user explicitly clicked "New Bill", do not auto-load any pending bill
+            if (forceNewBill) return;
+
             const customerBills = Object.entries(allBills).filter(([key, b]) => {
                 return b.customerPhone === phone && b.status !== 'cancelled' && (b.status === 'unpaid' || b.status === 'partial');
             });
@@ -1952,6 +1957,7 @@
 
         function clearBillScreen() {
             editingBillId = null;
+            forceNewBill = false; // Reset the new-bill flag
             document.getElementById('invoice-editor-title').textContent = "🧾 Create New Invoice";
             
             document.getElementById('customerPhone').value = "";
@@ -1988,7 +1994,7 @@
                 return;
             }
 
-            // Save customer details before resetting
+            forceNewBill = true; // Prevent auto-loading pending bill when phone is re-validated
             editingBillId = null;
             document.getElementById('invoice-editor-title').textContent = "🧾 New Bill — " + name;
 
