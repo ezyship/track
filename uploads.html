@@ -1004,12 +1004,14 @@
             const a = document.getElementById(`a-${p.id}`);
             const pin = document.getElementById(`p-${p.id}`);
             const ph = document.getElementById(`ph-${p.id}`);
+            const pkg = document.getElementById(`pkg-${p.id}`);
             const st = document.querySelector(`#pc-${p.id} .qr-status`);
             if (n && p.name && !n.value) n.value = p.name;
             if (a && p.awb && !a.value) a.value = p.awb;
             if (pin && p.pincode && !pin.value) pin.value = p.pincode;
             if (ph && p.phone && !ph.value) ph.value = p.phone;
-            if (st) st.textContent = p.status;
+            if (pkg && p.pkgId && !pkg.value) pkg.value = p.pkgId;
+            if (st) st.textContent = `${p.status} ${p.pkgId ? `[${p.pkgId}]` : ''}`;
         }
 
         function renderGrid() {
@@ -1031,7 +1033,7 @@
                             <div class="fg"><label>AWB / Tracking ID</label><input type="text" id="a-${p.id}" placeholder="Scan or type AWB" value="${p.awb || ''}" oninput="upd('${p.id}','awb',this.value)"></div>
                             <div class="fg"><label>Pincode</label><input type="text" id="p-${p.id}" placeholder="6-digit pincode" maxlength="6" value="${p.pincode}" oninput="upd('${p.id}','pincode',this.value)"></div>
                             <div class="fg"><label>Phone</label><input type="tel" id="ph-${p.id}" placeholder="Phone number" maxlength="11" value="${p.phone}" oninput="upd('${p.id}','phone',this.value)"></div>
-                            ${p.pkgId ? `<div class="fg" style="margin-bottom: 5px;"><span style="font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase;">Package ID</span><div style="font-size: 0.84rem; color: var(--txt); padding: 7px 9px; background: var(--inp); border-radius: 7px; border: 1px solid var(--bdr);">${p.pkgId}</div></div>` : ''}
+                            <div class="fg"><label>Package ID</label><input type="text" id="pkg-${p.id}" placeholder="PKG-XXXXXX" value="${p.pkgId || ''}" oninput="upd('${p.id}','pkgId',this.value)"></div>
                         </div>`;
                     g.appendChild(div);
                 } else { syncDOM(p); }
@@ -1066,17 +1068,19 @@
                 p.pincode = (document.getElementById(`p-${p.id}`)?.value || '').trim();
                 p.phone = (document.getElementById(`ph-${p.id}`)?.value || '').trim();
                 p.awb = (document.getElementById(`a-${p.id}`)?.value || '').trim();
+                p.pkgId = (document.getElementById(`pkg-${p.id}`)?.value || '').trim();
 
-                ['n', 'p', 'ph', 'a'].forEach(pre => document.getElementById(`${pre}-${p.id}`)?.classList.remove('err'));
+                ['n', 'p', 'ph', 'a', 'pkg'].forEach(pre => document.getElementById(`${pre}-${p.id}`)?.classList.remove('err'));
 
-                // Relaxed validation: Need AT LEAST a Phone OR an AWB. Name and Pincode are optional now.
-                if (!p.phone && !p.awb) {
+                // Relaxed validation: Need AT LEAST a Phone OR an AWB OR a Package ID. Name and Pincode are optional now.
+                if (!p.phone && !p.awb && !p.pkgId) {
                     document.getElementById(`ph-${p.id}`)?.classList.add('err');
                     document.getElementById(`a-${p.id}`)?.classList.add('err');
+                    document.getElementById(`pkg-${p.id}`)?.classList.add('err');
                     ok = false;
                 }
             });
-            if (!ok) { toast('Need at least a Phone Number or AWB to link the photo', 'er'); return; }
+            if (!ok) { toast('Need at least a Phone Number, AWB, or Package ID to link the photo', 'er'); return; }
             if (!firebaseInitialized && (!cfg.token || !cfg.repo)) { toast('Save GitHub config first!', 'er'); return; }
 
             const btn = document.getElementById('ubtn');
