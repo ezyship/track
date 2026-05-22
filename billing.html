@@ -819,6 +819,7 @@
         <a href="uploads.html">📸 Upload Tracking</a>
         <a href="search.html">🔎 Search Photos</a>
         <a href="billing.html" class="on">🧾 Billing</a>
+        <a href="customers.html">👤 Customers</a>
         <a href="online-excel.html">📊 Online Excel</a>
         <a href="#" onclick="handleLogout(event)" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.08);">🚪 Logout</a>
     </nav>
@@ -1833,7 +1834,7 @@
 
             // Extract item lines
             const rows = document.querySelectorAll('#line-items-body tr');
-            const items = [];
+            let items = [];
             let validItems = true;
             
             rows.forEach(row => {
@@ -1859,6 +1860,34 @@
                 return;
             }
 
+            // --- Append-to-newest logic (same rule as Quick Bill) ---
+            // If no bill is loaded in the editor and "New Bill" was NOT explicitly clicked,
+            // find the newest pending bill for this customer and append to it.
+            // This ensures: inv-02 receives all entries until inv-03 is created, then inv-03 does, etc.
+            let billCreatedAt = new Date(invoiceDateVal).toISOString();
+            if (!editingBillId && !forceNewBill) {
+                try {
+                    const pendingSnap = await db.ref('bills')
+                        .orderByChild('customerPhone').equalTo(phone).once('value');
+                    if (pendingSnap.exists()) {
+                        const pendingEntries = Object.entries(pendingSnap.val())
+                            .filter(([k, b]) => b.status !== 'cancelled' &&
+                                (b.status === 'unpaid' || b.status === 'partial'))
+                            // Sort descending — newest pending bill first
+                            .sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
+                        if (pendingEntries.length > 0) {
+                            const [targetId, targetBill] = pendingEntries[0];
+                            editingBillId = targetId;
+                            invoiceNo = targetBill.invoiceNo;       // keep original invoice number
+                            billCreatedAt = targetBill.createdAt;   // keep original creation date
+                            // Prepend existing items so chronological order is maintained
+                            const existingItems = Array.isArray(targetBill.items) ? targetBill.items : [];
+                            items = [...existingItems, ...items];
+                        }
+                    }
+                } catch (e) { /* lookup failed — fall through and create a new bill */ }
+            }
+
             const subtotal = items.reduce((acc, row) => acc + row.total, 0);
             const gstAmount = gstType === 'gst' ? (subtotal * (gstPercent / 100)) : 0;
             const grandTotal = subtotal + gstAmount + extraCharges - discount;
@@ -1870,7 +1899,7 @@
                 customerPhone: phone,
                 customerAddress: address,
                 customerGst: customerGst,
-                createdAt: new Date(invoiceDateVal).toISOString(),
+                createdAt: billCreatedAt,
                 updatedAt: new Date().toISOString(),
                 paymentTimestamp: paymentStatus === 'paid' ? new Date().toISOString() : null,
                 items: items,
