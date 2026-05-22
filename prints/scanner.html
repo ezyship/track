@@ -373,6 +373,13 @@
                 if (!parsedData.name && !parsedData.phone) {
                     throw new Error("Invalid format");
                 }
+                // Try to extract pkgId from raw text if not already populated in the JSON payload
+                if (!parsedData.pkgId) {
+                    let pkgMatch = decodedText.match(/\bPKG-[A-Z0-9]+\b/i);
+                    if (pkgMatch) {
+                        parsedData.pkgId = pkgMatch[0].toUpperCase();
+                    }
+                }
             } catch (e) {
                 // If it's not our JSON format, extract structured fields (phone, pincode, name, address)
                 let text = decodedText.trim();
@@ -448,7 +455,8 @@
                     }
                     
                     if (data.status === "success") {
-                        showToast('success', 'Successfully Dispatched!');
+                        const pkgSuffix = parsedData.pkgId ? ` [${parsedData.pkgId}]` : '';
+                        showToast('success', 'Successfully Dispatched!' + pkgSuffix);
                     } else {
                         showToast('error', 'Error: ' + (data.message || 'Unknown error'));
                     }

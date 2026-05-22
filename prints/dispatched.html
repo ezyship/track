@@ -504,7 +504,7 @@
         </div>
 
         <div class="search-container" id="search-container">
-            <input type="text" id="searchInput" placeholder="🔍 Search customer by name or phone..."
+            <input type="text" id="searchInput" placeholder="🔍 Search customer by name, phone, or package ID..."
                 onkeyup="filterTable()">
         </div>
 
@@ -584,7 +584,8 @@
                     const address = (row.address || '').toLowerCase();
                     const awb = (row.awb || '').toLowerCase();
                     const timestamp = (row.timestamp || '').toLowerCase();
-                    return name.includes(q) || phone.includes(q) || address.includes(q) || awb.includes(q) || timestamp.includes(q);
+                    const pkgId = (row.pkgId || row.pkg_id || row.pkgid || row.packageId || row.packageID || row.PackageID || '').toLowerCase();
+                    return name.includes(q) || phone.includes(q) || address.includes(q) || awb.includes(q) || timestamp.includes(q) || pkgId.includes(q);
                 }
                 return true;
             });
@@ -607,6 +608,7 @@
                 let dispName = row.name || row.Name || '';
                 let dispPhone = row.phone || row.Phone || '';
                 let dispAwb = row.awb || row.AWB || '';
+                let dispPkgId = row.pkgId || row.pkg_id || row.pkgid || row.packageId || row.packageID || row.PackageID || '';
 
                 // Fallback: If phone is empty, try to extract it from the address string
                 if (!dispPhone && dispAddress) {
@@ -619,6 +621,15 @@
                 // Fallback: if address is empty, use name field
                 if (!dispAddress || dispAddress.trim() === '') {
                     dispAddress = dispName;
+                }
+
+                // Fallback: extract package ID (PKG-XXXXXX) from address or rawText if not found in columns
+                if (!dispPkgId) {
+                    const textToSearch = (dispAddress + ' ' + (row.rawText || '')).trim();
+                    const pkgMatch = textToSearch.match(/\bPKG-[A-Z0-9]+\b/i);
+                    if (pkgMatch) {
+                        dispPkgId = pkgMatch[0].toUpperCase();
+                    }
                 }
 
                 let displayDate = row.timestamp || 'N/A';
@@ -642,7 +653,7 @@
 
                 // Store row data for the modal to look up later
                 const rowIdx = window._rowStore.length;
-                window._rowStore.push({ phone: dispPhone, timestamp: row.timestamp || '', awb: dispAwb });
+                window._rowStore.push({ phone: dispPhone, timestamp: row.timestamp || '', awb: dispAwb, pkgId: dispPkgId });
 
                 tr.innerHTML = `
                     <td class="td-time">${displayDate}</td>
@@ -784,7 +795,7 @@
                         <div class="spinner" style="width:36px;height:36px;margin:auto;border:3px solid rgba(255,255,255,0.1);border-top-color:#60a5fa;border-radius:50%;animation:modalSpin 0.8s linear infinite;"></div>
                     </div>
                     <div class="tracking-status-title">Parcel Status</div>
-                    <p id="modal-details" style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">📞 ${row.phone || 'N/A'}</p>
+                    <p id="modal-details" style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">📞 ${row.phone || 'N/A'}${row.pkgId ? ` &nbsp;|&nbsp; 📦 ${row.pkgId}` : ''}</p>
                     <div class="tracking-timeline" id="tracking-timeline">
                         <div class="timeline-item active">
                             <div class="timeline-dot"></div>
@@ -796,14 +807,14 @@
                     </div>
                     <div id="live-track-btn-wrap" style="margin-top:18px;"></div>
                     <div style="margin-top:12px;">
-                        <button class="refresh-btn" style="width:100%;justify-content:center;" onclick="loadTrackingData('${row.phone || ''}','${row.awb || ''}')">↻ Refresh Photo</button>
+                        <button class="refresh-btn" style="width:100%;justify-content:center;" onclick="loadTrackingData('${row.phone || ''}','${row.awb || ''}','${row.pkgId || ''}')">↻ Refresh Photo</button>
                     </div>
                 </div>
             `;
 
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('show'), 10);
-            loadTrackingData(row.phone, row.awb);
+            loadTrackingData(row.phone, row.awb, row.pkgId);
         }
 
         function closeTracker() {
@@ -814,7 +825,7 @@
             }
         }
 
-        async function loadTrackingData(phone, awb) {
+        async function loadTrackingData(phone, awb, pkgId = '') {
             const photoContainer = document.getElementById('modal-photo');
             const liveWrap = document.getElementById('live-track-btn-wrap');
             if (!photoContainer) return;
@@ -822,6 +833,7 @@
             // Sanitize stringified undefined/null values
             const cleanPhoneParam = (phone === 'undefined' || phone === 'null') ? '' : (phone || '');
             const cleanAwbParam = (awb === 'undefined' || awb === 'null') ? '' : (awb || '');
+            const cleanPkgId = (pkgId === 'undefined' || pkgId === 'null') ? '' : (pkgId || '').trim().toUpperCase();
 
             // Normalize: strip spaces and non-digits, then get last 5 digits
             const cleanPhone = cleanPhoneParam.replace(/\D/g, '');
@@ -829,16 +841,8 @@
             const cleanAwb = cleanAwbParam.replace(/\W/g, '');
             const awbLast5 = cleanAwb.slice(-5);
             
-            // Primary lookup key is phone last 5. If missing, fallback to AWB last 5.
-            const lookupKey = phoneLast5 || awbLast5;
-
-            // Helper: check if a record's phone or awb last-5 matches the lookupKey
-            function last5Match(recordPhone, recordAwb) {
-                if (!lookupKey || lookupKey.length < 4) return false; // Prevent empty matching everything
-                const rPhoneClean = (recordPhone || '').replace(/\D/g, '').slice(-5);
-                const rAwbClean = (recordAwb || '').replace(/\W/g, '').slice(-5);
-                return rPhoneClean === lookupKey || rAwbClean === lookupKey;
-            }
+            // Fallback lookup key (last 5 phone/awb digits)
+            const fallbackKey = phoneLast5 || awbLast5;
 
             let foundRecord = null;
 
@@ -895,17 +899,28 @@
                 }
             }
 
-            // Find matching GitHub record by last-5 phone or AWB digits
-            const ghMatch = githubRecords.find(r => last5Match(r.phone, r.awb)) || null;
+            // 1. Try matching by Package ID first
+            if (cleanPkgId) {
+                foundRecord = githubRecords.find(r => r.pkgId && r.pkgId.trim().toUpperCase() === cleanPkgId);
+            }
+
+            // 2. Fallback: match by last-5 phone or AWB digits if no pkgId match is found
+            if (!foundRecord && fallbackKey) {
+                foundRecord = githubRecords.find(r => {
+                    const rPhoneClean = (r.phone || '').replace(/\D/g, '').slice(-5);
+                    const rAwbClean = (r.awb || '').replace(/\W/g, '').slice(-5);
+                    return (rPhoneClean && rPhoneClean === fallbackKey) || (rAwbClean && rAwbClean === fallbackKey);
+                });
+            }
 
             // Resolve AWB: prefer records.json match (most reliable source)
-            const resolvedAwb = (ghMatch && ghMatch.awb) || cleanAwbParam || '';
+            const resolvedAwb = (foundRecord && foundRecord.awb) || cleanAwbParam || '';
 
             // Resolve photoUrl: prefer records.json, then localStorage, then images/ folder
-            let resolvedPhoto = (ghMatch && ghMatch.photoUrl) || null;
+            let resolvedPhoto = (foundRecord && foundRecord.photoUrl) || null;
 
-            // 1. If still no photo, scan GitHub images/ folder by lookupKey in filename
-            if (!resolvedPhoto && cfg.token && cfg.repo && lookupKey.length >= 4) {
+            // 3. If still no photo, scan GitHub images/ folder by pkgId or fallbackKey in filename
+            if (!resolvedPhoto && cfg.token && cfg.repo) {
                 try {
                     const imgRes = await fetch(
                         `https://api.github.com/repos/${cfg.repo}/contents/images?ref=${cfg.branch || 'main'}&t=${Date.now()}`,
@@ -913,10 +928,20 @@
                     );
                     if (imgRes.ok) {
                         const imgList = await imgRes.json();
-                        // Priority: filenames starting with lookupKey_ (new format), then any containing lookupKey
-                        const matches = imgList.filter(f => f.name.startsWith(lookupKey + '_') || f.name.includes('_' + lookupKey + '_'));
-                        matches.sort((a, b) => b.name.localeCompare(a.name)); // newest first
-                        const bestMatch = matches[0] || imgList.find(f => f.name.includes(lookupKey));
+                        let bestMatch = null;
+
+                        // Try finding by Package ID first in filename
+                        if (cleanPkgId) {
+                            bestMatch = imgList.find(f => f.name.toUpperCase().includes(cleanPkgId));
+                        }
+
+                        // Fallback to last-5 digits in filename
+                        if (!bestMatch && fallbackKey && fallbackKey.length >= 4) {
+                            const matches = imgList.filter(f => f.name.startsWith(fallbackKey + '_') || f.name.includes('_' + fallbackKey + '_'));
+                            matches.sort((a, b) => b.name.localeCompare(a.name)); // newest first
+                            bestMatch = matches[0] || imgList.find(f => f.name.includes(fallbackKey));
+                        }
+
                         if (bestMatch) {
                             resolvedPhoto = `https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch || 'main'}/images/${bestMatch.name}`;
                         }
@@ -925,14 +950,14 @@
             }
 
             // Build unified foundRecord
-            foundRecord = (resolvedPhoto || resolvedAwb || ghMatch) ? {
+            foundRecord = (resolvedPhoto || resolvedAwb || foundRecord) ? {
                 photoUrl: resolvedPhoto,
                 awb: resolvedAwb,
-                uploadedAt: ghMatch ? ghMatch.uploadedAt : null,
-                name: ghMatch ? ghMatch.name : ''
+                uploadedAt: foundRecord ? foundRecord.uploadedAt : null,
+                name: foundRecord ? foundRecord.name : ''
             } : null;
 
-            // 3. Render result
+            // 4. Render result
             if (foundRecord && (foundRecord.photoUrl || foundRecord.photo)) {
                 const photoUrl = foundRecord.photoUrl || foundRecord.photo;
                 photoContainer.innerHTML = `<img src="${photoUrl}" style="width:100%;max-height:60vh;object-fit:contain;border-radius:12px;" onclick="window.open('${photoUrl}','_blank')" onerror="this.parentElement.innerHTML='<span>⚠️ Photo could not load.<br><small>Check GitHub repository.</small></span>'">`;
@@ -987,7 +1012,7 @@
                 photoContainer.innerHTML = `<div style="text-align:center;padding:20px;">
                     <div style="font-size:2.5rem;margin-bottom:12px;">📭</div>
                     <strong>No photo uploaded yet</strong><br>
-                    <small style="color:var(--text-muted);">Phone: ${cleanPhoneParam}</small><br><br>
+                    <small style="color:var(--text-muted);">Phone: ${cleanPhoneParam}${cleanPkgId ? ` | Package ID: ${cleanPkgId}` : ''}</small><br><br>
                     <a href="../uploads.html" target="_blank" style="color:#60a5fa;font-size:0.85rem;">Upload tracking photo →</a>
                 </div>`;
 
