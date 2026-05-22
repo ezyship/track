@@ -728,6 +728,7 @@
         <a href="uploads.html">📸 Upload Tracking</a>
         <a href="search.html">🔎 Search Photos</a>
         <a href="billing.html">🧾 Billing</a>
+        <a href="gst-billing.html">🧾 GST Billing</a>
         <a href="customers.html">👤 Customers</a>
         <a href="online-excel.html" class="on">📊 Online Excel</a>
         <a href="#" onclick="handleLogout(event)" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.08);">🚪 Logout</a>
@@ -1419,9 +1420,11 @@
             const gstRow = document.getElementById('mGstRow');
             const gstAmountEl = document.getElementById('mGstAmount');
             const gstLabelEl = document.getElementById('mGstLabel');
-            if (bill.gstType === 'gst' && (parseFloat(bill.gstAmount) > 0 || parseFloat(bill.gstPercent) > 0)) {
+            const isGst = bill.isGstBill || bill.gstType === 'gst' || bill.gstType === 'cgst-sgst' || bill.gstType === 'igst';
+            if (isGst && (parseFloat(bill.gstAmount) > 0 || parseFloat(bill.gstPercent) > 0)) {
                 gstRow.style.display = 'flex';
-                gstLabelEl.textContent = `GST (${bill.gstPercent || 18}%):`;
+                const labelText = (bill.gstType === 'cgst-sgst' ? 'CGST + SGST' : (bill.gstType === 'igst' ? 'IGST' : 'GST'));
+                gstLabelEl.textContent = `${labelText} (${bill.gstPercent || 18}%):`;
                 gstAmountEl.textContent = '₹' + (parseFloat(bill.gstAmount) || 0).toFixed(2);
             } else {
                 gstRow.style.display = 'none';
