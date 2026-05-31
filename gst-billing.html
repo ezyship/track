@@ -108,6 +108,29 @@
         .header p {
             color: var(--text-muted);
             font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .ledger-btn {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .ledger-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
         }
 
         /* Analytics Section */
@@ -161,18 +184,18 @@
 
         /* Workspace Grid Layout */
         .dashboard-container {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 20px;
             width: 100%;
-            max-width: 1400px;
-            align-items: start;
-            margin-bottom: 50px;
+            max-width: 1000px;
+            align-items: center;
+            margin: 0 auto 50px auto;
         }
 
         @media (max-width: 1200px) {
             .dashboard-container {
-                grid-template-columns: 1fr;
+                padding: 0 10px;
             }
         }
 
@@ -688,8 +711,8 @@
 
     <!-- Header bar -->
     <div class="header">
-        <h1>🧾 Dedicated GST Billing Portal</h1>
-        <p>Generate, edit, and print official Tally Prime style Tax Invoices with dynamic CGST/SGST/IGST breakdown</p>
+        <h1>🧾 GST Billing Portal</h1>
+        <p>Create & print B2B/B2C GST Invoices efficiently.</p>
     </div>
 
     <!-- Navigation links -->
@@ -986,86 +1009,7 @@
             </div>
         </div>
 
-        <!-- Invoice list / history database viewer (Right side) -->
-        <div class="glass-card">
-            <div class="card-header">
-                <h2>📊 GST Invoices Ledger</h2>
-                <div>
-                    <button class="btn btn-success btn-sm" onclick="exportGstBillsExcel()">🟢 Export Excel</button>
-                </div>
-            </div>
-
-            <!-- Filter criteria -->
-            <div class="filters-panel">
-                <div class="filters-row" style="margin-bottom: 10px;">
-                    <div class="filter-item" style="flex: 2;">
-                        <label for="filterSearch">🔍 Search Invoices</label>
-                        <input type="text" id="filterSearch" placeholder="Search customer, phone, GSTIN, invoice..." onkeyup="filterAndLoadBillsTable()">
-                    </div>
-                </div>
-                <div class="filters-row">
-                    <div class="filter-item">
-                        <label for="filterDateRange">📅 Date Filter</label>
-                        <select id="filterDateRange" onchange="handleDateFilterChange()">
-                            <option value="all">All Invoices</option>
-                            <option value="today">Today</option>
-                            <option value="month">Current Month</option>
-                            <option value="last-month">Last Month</option>
-                            <option value="financial-year">Financial Year</option>
-                            <option value="custom">Custom Date Range</option>
-                        </select>
-                    </div>
-                    <div class="filter-item">
-                        <label for="filterStatus">🏷️ Payment Status</label>
-                        <select id="filterStatus" onchange="filterAndLoadBillsTable()">
-                            <option value="all">All Statuses</option>
-                            <option value="paid">Paid</option>
-                            <option value="unpaid">Unpaid</option>
-                            <option value="partial">Partial Paid</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="filters-row" id="custom-date-inputs" style="display: none; margin-top: 10px;">
-                    <div class="filter-item">
-                        <label for="startDate">Start Date</label>
-                        <input type="date" id="startDate" onchange="filterAndLoadBillsTable()">
-                    </div>
-                    <div class="filter-item">
-                        <label for="endDate">End Date</label>
-                        <input type="date" id="endDate" onchange="filterAndLoadBillsTable()">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ledger Table -->
-            <div class="data-table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Inv. Code</th>
-                            <th>Date</th>
-                            <th>Buyer Details</th>
-                            <th>Total (₹)</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bills-table-body">
-                        <!-- Database content -->
-                    </tbody>
-                </table>
-                <div id="table-loading-spinner" style="text-align: center; padding: 30px; display: none;">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 8px; color: var(--text-muted);">Fetching transactions...</p>
-                </div>
-                <div id="table-empty-state" style="text-align: center; padding: 30px; color: var(--text-muted);">
-                    📭 No GST invoices match criteria.
-                </div>
-            </div>
-        </div>
-
-    </div>
+        <!-- Ledger moved to gst-ledger.html -->
 
     <!-- Seller profile configurations modal -->
     <div class="modal" id="sellerSettingsModal">
