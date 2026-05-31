@@ -768,8 +768,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="buyerPhone">Buyer Phone Number</label>
-                        <input type="text" id="buyerPhone" placeholder="Enter 10-digit number" onkeyup="handleBuyerPhoneInput(this)" autocomplete="off">
+                        <label for="buyerPhone">Buyer Phone Number / Name Search</label>
+                        <input type="text" id="buyerPhone" placeholder="Enter 10-digit number or name" onkeyup="handleBuyerPhoneInput(this)" autocomplete="off">
                         <div id="phone-suggestions" class="suggestions-box"></div>
                     </div>
                     <div class="form-group">
@@ -1321,13 +1321,12 @@
 
         // Customer Quick Search autofill
         function handleBuyerPhoneInput(input) {
-            const val = input.value.replace(/\D/g, '');
-            input.value = val;
+            const val = input.value;
 
             const suggestions = document.getElementById('phone-suggestions');
             suggestions.innerHTML = '';
 
-            if (val.length === 10) {
+            if (val.match(/^\d{10}$/)) {
                 checkForPendingGstBill(val);
             }
 
@@ -1492,7 +1491,7 @@
             // Collect GST summaries by tier
             const sellerStateCode = sellerConfig.stateCode || "08";
             const buyerStateCode = document.getElementById('buyerStateCode').value || "08";
-            const isLocal = (sellerStateCode === buyerStateCode);
+            const isLocal = false; // Always use IGST as requested by user
 
             // Group tax values by rate tier
             const taxTiers = {};
@@ -1759,7 +1758,7 @@
                 termsOfDelivery: document.getElementById('termsOfDelivery').value.trim()
             };
 
-            if (!phone || phone.length !== 10) {
+            if (!phone || !phone.match(/^\d+$/) || phone.length !== 10) {
                 showToast("Please provide a valid 10-digit phone number.", "error");
                 return;
             }
@@ -1869,7 +1868,7 @@
                 payments: activePayments,
                 items: items,
                 subtotal: subtotal,
-                gstType: (sellerConfig.stateCode === stateCode) ? 'cgst-sgst' : 'igst',
+                gstType: 'igst', // Force IGST
                 gstPercent: parseFloat(effectiveGstPct.toFixed(2)),
                 gstAmount: parseFloat(gstTotalAmt.toFixed(2)),
                 extraCharges: parseFloat(document.getElementById('extraCharges').value) || 0,
@@ -2253,10 +2252,9 @@
                 if (b.isGstBill === true && b.status !== 'cancelled') {
                     totalGstSales += parseFloat(b.grandTotal) || 0;
                     
-                    const localBuyer = (b.buyerStateCode === b.seller.stateCode);
                     const gstAmount = parseFloat(b.gstAmount) || 0;
 
-                    if (localBuyer) {
+                    if (b.gstType === 'cgst-sgst') {
                         cgstAmt += gstAmount / 2;
                         sgstAmt += gstAmount / 2;
                     } else {

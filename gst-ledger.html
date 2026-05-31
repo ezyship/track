@@ -1110,7 +1110,6 @@
         function updateNextInvoicePlaceholder() {
             if (!editingBillId) {
                 const nextNoStr = String(sellerConfig.gstNextNo).padStart(3, '0');
-                document.getElementById('invoiceNo').value = (sellerConfig.gstPrefix || "DD/2026-27/") + nextNoStr;
             }
         }
 
@@ -1840,6 +1839,9 @@
 
         // Load specific invoice into editor fields
         function loadBillForEditing(billId) {
+            window.location.href = `gst-billing.html?editbill=${billId}`;
+        }
+        function _unused_old_loadBillForEditing(billId) {
             const bill = allBills[billId];
             if (!bill) return;
 
@@ -2065,10 +2067,9 @@
                 if (b.isGstBill === true && b.status !== 'cancelled') {
                     totalGstSales += parseFloat(b.grandTotal) || 0;
                     
-                    const localBuyer = (b.buyerStateCode === b.seller.stateCode);
                     const gstAmount = parseFloat(b.gstAmount) || 0;
 
-                    if (localBuyer) {
+                    if (b.gstType === 'cgst-sgst') {
                         cgstAmt += gstAmount / 2;
                         sgstAmt += gstAmount / 2;
                     } else {
