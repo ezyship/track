@@ -913,6 +913,14 @@
             setTimeout(function () {
                 win.focus();
                 win.print();
+
+                // Generate new pkg ID after every print
+                for (var b = 0; b < boxes.length; b++) {
+                    var newId = 'PKG-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+                    boxes[b].setAttribute('data-unique-id', newId);
+                    var label = boxes[b].querySelector('.pkg-id-label');
+                    if (label) label.innerText = newId;
+                }
             }, 500);
         }
 
