@@ -1050,7 +1050,7 @@
                 if (num.startsWith('D') || num.startsWith('W')) carrierCode = '100069'; // DTDC
                 if (num.startsWith('356') || num.startsWith('19')) carrierCode = '100060'; // Delhivery
                 if (num.startsWith('5006') || num.startsWith('1003')) carrierCode = '100180'; // Trackon
-                if (num.startsWith('261')) carrierCode = '100358'; // Shree Maruti
+                if (num.startsWith('261') || num.includes('3200')) carrierCode = '100358'; // Shree Maruti
                 container.innerHTML = '';
                 YQV5.trackSingle({
                     YQ_ContainerId: 'YQContainer-modal',
