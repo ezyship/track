@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Billing & Ledger</title>
+    <title>Customer Ledger</title>
     <style id="auth-guard-style">body { display: none !important; }</style>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -117,7 +117,7 @@
         }
 
         .ledger-btn {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
             border: none;
             padding: 10px 24px;
@@ -130,12 +130,12 @@
             align-items: center;
             gap: 8px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
 
         .ledger-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
         }
 
         /* Analytics Section */
@@ -194,7 +194,7 @@
             flex-direction: column;
             gap: 20px;
             width: 100%;
-            max-width: 1000px;
+            max-width: 1200px;
             align-items: center;
             margin: 0 auto 50px auto;
         }
@@ -862,9 +862,9 @@
 
     <!-- Header Section -->
     <div class="header">
-        <h1>🧾 Billing & Ledger Portal</h1>
-        <p>Manage unlimited customer bills, check payment ledgers, print address labels & export monthly spreadsheets.</p>
-        <a href="billing-ledger.html" class="ledger-btn">📊 View Billing Ledger</a>
+        <h1>📊 Billing Ledger</h1>
+        <p>View, manage, and export your invoices and customer ledger.</p>
+        <a href="billing.html" class="ledger-btn">➕ Create New Bill</a>
     </div>
 
     <!-- Real-time Analytics Dashboard -->
@@ -896,171 +896,182 @@
         <!-- Invoice Creator / Editor Form -->
         <div class="glass-card">
             <div class="card-header">
-                <h2 id="invoice-editor-title">🧾 Create New Invoice</h2>
+                <h2>📋 Invoices Database</h2>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-s btn-sm" onclick="showAddCustomerModal()">👥 Add Customer</button>
-                    <button class="btn btn-s btn-sm" onclick="showSettingsModal()">⚙️ Settings</button>
-                    <button class="btn btn-danger btn-sm" onclick="clearBillScreen()">🧹 Clear Screen</button>
+                    <button class="btn btn-success btn-sm" onclick="exportFilteredBillsExcel()">🟢 Export Filtered Excel</button>
+                    <button class="btn btn-s btn-sm" onclick="showUtilityModal()">📂 Export / Tools</button>
                 </div>
             </div>
 
-            <!-- Customer Details Block -->
-            <div style="border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.02);">
-                <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">👤 Customer Information</div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="customerPhone">Phone Number</label>
-                        <input type="text" id="customerPhone" placeholder="Enter 10-digit number" onkeyup="handlePhoneInput(this)" autocomplete="off">
-                        <div id="phone-suggestions" class="suggestions-box"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerName">Full Name</label>
-                        <input type="text" id="customerName" placeholder="Enter customer name">
+            <!-- Smart Filter controls -->
+            <div class="filters-panel">
+                <div class="filters-row" style="margin-bottom: 10px;">
+                    <div class="filter-item" style="flex: 2;">
+                        <label for="filterSearch">🔍 Search Invoices</label>
+                        <input type="text" id="filterSearch" placeholder="Search customer, phone, or invoice..." onkeyup="filterAndLoadBillsTable()">
                     </div>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="customerGst">Customer GSTIN (Optional)</label>
-                        <input type="text" id="customerGst" placeholder="Enter GST No (optional)" style="text-transform: uppercase;">
+                <div class="filters-row">
+                    <div class="filter-item">
+                        <label for="filterDateRange">📅 Date Filter</label>
+                        <select id="filterDateRange" onchange="handleDateFilterChange()">
+                            <option value="all">All Invoices</option>
+                            <option value="today">Today</option>
+                            <option value="month">Current Month</option>
+                            <option value="last-month">Last Month</option>
+                            <option value="financial-year">Financial Year</option>
+                            <option value="custom">Custom Date Range</option>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label>Actions</label>
-                        <div style="display:flex; gap:8px; height: 100%; flex-wrap: wrap;">
-                            <button class="btn btn-p btn-sm" style="flex:1; min-width: 100px;" onclick="newBillForExistingCustomer()">➕ New Bill</button>
-                            <button class="btn btn-s btn-sm" style="flex:1; min-width: 100px;" onclick="printShippingLabelDirect()">🖨️ Print Label</button>
-                            <button class="btn btn-success btn-sm" style="flex:1; min-width: 100px;" onclick="viewSelectedCustomerExcel()">📊 View Excel</button>
-                            <button class="btn btn-danger btn-sm" style="flex:1; min-width: 100px; background: var(--danger);" onclick="deleteActiveCustomerAccount()">🗑️ Delete Account</button>
+                    <div class="filter-item">
+                        <label for="filterStatus">🏷️ Status</label>
+                        <select id="filterStatus" onchange="filterAndLoadBillsTable()">
+                            <option value="all">All Statuses</option>
+                            <option value="paid">Paid</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filters-row" id="custom-date-inputs" style="display: none; margin-top: 10px;">
+                    <div class="filter-item">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" onchange="filterAndLoadBillsTable()">
+                    </div>
+                    <div class="filter-item">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" onchange="filterAndLoadBillsTable()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices table -->
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Inv. Code</th>
+                            <th>Date</th>
+                            <th>Customer details</th>
+                            <th>Grand Total</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bills-table-body">
+                        <!-- Content loaded dynamically from Firebase -->
+                    </tbody>
+                </table>
+                <div id="table-loading-spinner" style="text-align: center; padding: 30px; display: none;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 8px; color: var(--text-muted);">Fetching transactions...</p>
+                </div>
+                <div id="table-empty-state" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    📭 No invoices match the active filters.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Ledger Detail View Modal -->
+    <div class="modal" id="customerLedgerModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>👥 Customer Ledger & Billing History</h3>
+                <button class="modal-close" onclick="closeModal('customerLedgerModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="ledger-stats">
+                    <div class="ledger-stat-card">
+                        <label>Customer Name</label>
+                        <span id="ledger-customer-name">---</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Phone Number</label>
+                        <span id="ledger-customer-phone">---</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Saved GSTIN</label>
+                        <span id="ledger-customer-gst">---</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Total Business Done</label>
+                        <span id="ledger-customer-total" style="color:var(--success)">₹0.00</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Outstanding Balance</label>
+                        <span id="ledger-customer-pending" style="color:var(--danger)">₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Ledger Dynamic Filter Panel -->
+                <div class="filters-panel" style="margin-bottom: 15px; padding: 12px; background: rgba(15, 23, 42, 0.4);">
+                    <div class="filters-row">
+                        <div class="filter-item">
+                            <label for="ledgerFilterDateRange">📅 Date Filter</label>
+                            <select id="ledgerFilterDateRange" onchange="handleLedgerDateFilterChange()">
+                                <option value="all">All Invoices</option>
+                                <option value="today">Today</option>
+                                <option value="month">Current Month</option>
+                                <option value="last-month">Last Month</option>
+                                <option value="financial-year">Financial Year</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="ledgerFilterStatus">🏷️ Status</label>
+                            <select id="ledgerFilterStatus" onchange="filterAndLoadLedgerTable()">
+                                <option value="all">All Statuses</option>
+                                <option value="paid">Paid</option>
+                                <option value="unpaid">Unpaid</option>
+                                <option value="partial">Partial Paid</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filters-row" id="ledger-custom-date-inputs" style="display: none; margin-top: 10px;">
+                        <div class="filter-item">
+                            <label for="ledgerStartDate">Start Date</label>
+                            <input type="date" id="ledgerStartDate" onchange="filterAndLoadLedgerTable()">
+                        </div>
+                        <div class="filter-item">
+                            <label for="ledgerEndDate">End Date</label>
+                            <input type="date" id="ledgerEndDate" onchange="filterAndLoadLedgerTable()">
                         </div>
                     </div>
                 </div>
-                
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="customerAddress">Shipping Address</label>
-                    <textarea id="customerAddress" rows="2" placeholder="Street, City, Pincode, State"></textarea>
+
+                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 12px; color: var(--primary);">📝 Transaction Logs</div>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice No</th>
+                                <th>Date</th>
+                                <th>Billing Type</th>
+                                <th>Grand Total</th>
+                                <th>Amt Paid</th>
+                                <th>Amt Pending</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-rows-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            <!-- Invoice Details Block -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="invoiceNo">Invoice Number</label>
-                    <div style="display:flex;">
-                        <input type="text" id="invoiceNo" placeholder="Auto Generation" style="border-radius: 10px 0 0 10px; width: 70%;" readonly>
-                        <button class="btn btn-s btn-sm" style="border-radius: 0 10px 10px 0; border-left: none;" onclick="unlockInvoiceNumber()">✏️</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="invoiceDate">Date & Time</label>
-                    <input type="datetime-local" id="invoiceDate">
-                </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="ledgerDeleteBtn" onclick="deleteCustomerAccount()" style="margin-right: auto; background: var(--danger);">🗑️ Delete Customer</button>
+                <button class="btn btn-success" onclick="viewLedgerCustomerInExcel()">📊 View in Excel</button>
+                <button class="btn btn-success" onclick="exportCustomerLedgerExcel()">📥 Export Ledger Excel</button>
+                <button class="btn btn-s" onclick="closeModal('customerLedgerModal')">Close</button>
             </div>
-
-            <div class="form-row" style="margin-bottom: 10px;">
-                <div class="form-group">
-                    <label for="gstType">Billing Type</label>
-                    <select id="gstType" onchange="toggleGstSupport()">
-                        <option value="non-gst">Non-GST (No taxes calculated)</option>
-                        <option value="gst">GST Invoice</option>
-                    </select>
-                </div>
-                <div class="form-group" id="gst-percent-group" style="display: none;">
-                    <label for="gstPercent">GST Rate (%)</label>
-                    <select id="gstPercent" onchange="calculateGrandTotal()">
-                        <option value="0">0% GST</option>
-                        <option value="5">5% GST</option>
-                        <option value="12">12% GST</option>
-                        <option value="18" selected>18% GST</option>
-                        <option value="28">28% GST</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Line Items Editor Table -->
-            <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">📦 Products / Service Items</div>
-            <div class="items-table-container">
-                <table class="items-table" id="items-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 15%;">Date</th>
-                            <th style="width: 35%;">Product Details</th>
-                            <th style="width: 12%; text-align: right;">Qty</th>
-                            <th style="width: 18%; text-align: right;">Rate (₹)</th>
-                            <th style="width: 15%; text-align: right;">Total (₹)</th>
-                            <th style="width: 5%; text-align: center;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="line-items-body">
-                        <!-- Line items populated by JS -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="table-actions">
-                <button class="btn btn-s btn-sm" onclick="addInvoiceItemRow()">➕ Add Product Line</button>
-            </div>
-
-            <!-- Financial Calculations summary -->
-            <div class="summary-calculations">
-                <div class="summary-line">
-                    <span>Subtotal:</span>
-                    <span>₹<span id="label-subtotal">0.00</span></span>
-                </div>
-                <div class="summary-line" id="gst-amount-row" style="display: none;">
-                    <span>Calculated GST:</span>
-                    <span>₹<span id="label-gst-amount">0.00</span></span>
-                </div>
-                <div class="summary-line">
-                    <span>Extra Shipping / Handling Charges:</span>
-                    <input type="number" id="extraCharges" value="0" min="0" oninput="calculateGrandTotal()">
-                </div>
-                <div class="summary-line">
-                    <span>Adjusted Discount (₹):</span>
-                    <input type="number" id="discount" value="0" min="0" oninput="calculateGrandTotal()">
-                </div>
-                <div class="summary-line">
-                    <span>Grand Total:</span>
-                    <span>₹<span id="label-grand-total">0.00</span></span>
-                </div>
-                <div class="summary-line">
-                    <span>Amount Paid (₹):</span>
-                    <input type="number" id="amountPaid" value="0" min="0" oninput="handleAmountPaidInput()">
-                </div>
-                <!-- Dynamic Payment Deposits List -->
-                <div id="multiple-payments-section" style="margin: 8px 0 12px 0; border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.01);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 600; font-size: 0.8rem; color: var(--text-muted);">Payment Deposits</span>
-                        <button type="button" onclick="addPaymentDepositRow()" style="padding: 2px 8px; font-size: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:600;">+ Add Deposit</button>
-                    </div>
-                    <div id="payment-deposits-list">
-                        <!-- Deposit rows will go here dynamically -->
-                    </div>
-                </div>
-                <div class="summary-line">
-                    <span>Remaining Balance Pending:</span>
-                    <span>₹<span id="label-amount-pending">0.00</span></span>
-                </div>
-                <div class="summary-line">
-                    <span>Payment Status:</span>
-                    <select id="paymentStatus" onchange="handlePaymentStatusDropdownChange()" style="background:#1e293b; color:white; border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-weight:600;">
-                        <option value="unpaid">❌ Unpaid</option>
-                        <option value="partial">⏳ Partial Paid</option>
-                        <option value="paid">✅ Paid</option>
-                        <option value="cancelled">🚫 Cancelled</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="invoiceNotes">Private Notes / Remarks</label>
-                <textarea id="invoiceNotes" rows="1" placeholder="Internal billing comments (will not show on print)"></textarea>
-            </div>
-
-            <button class="btn btn-p" style="width: 100%; margin-top: 10px; font-size:1.05rem; padding: 12px;" onclick="saveInvoiceToDb()">💾 Save Bill & Update Ledger</button>
         </div>
+    </div>
 
-        <!-- Invoices List & Customer Ledger database -->
     <!-- Database Utilities Modal -->
     <div class="modal" id="utilitiesModal">
         <div class="modal-content" style="max-width: 600px;">
@@ -1209,18 +1220,6 @@
         };
 
         window.onload = function () {
-            // Setup default date to local time
-            setDefaultDate();
-            
-            // Add first empty item line row
-            addInvoiceItemRow();
-            
-            // Initialize activePayments with one empty payment
-            const today = new Date().toLocaleDateString('en-CA');
-            activePayments = [{ amount: 0, date: today }];
-            renderPaymentDeposits();
-            
-            // Connect database
             if (db) {
                 loadSettings();
                 listenToBills();
