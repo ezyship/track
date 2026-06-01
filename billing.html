@@ -318,7 +318,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
-            min-width: 500px;
+            min-width: 800px;
         }
 
         .items-table th {
@@ -2771,7 +2771,9 @@
                     ${bill.notes ? `<div style="font-size:12px; margin-top:20px; padding:10px; border-left:3px solid #ddd; background:#f9f9f9;"><strong>Notes:</strong> ${bill.notes}</div>` : ''}
 
                     <div class="footer-note">
-                        Thank you for your business!<br>
+                        <strong>E. & O.E.</strong><br>
+                        Subject to Kota, Rajasthan Jurisdiction Only.<br>
+                        <strong>Thank You for Your Business!</strong><br>
                         <em>This is a computer-generated transaction document. No physical signatures required.</em>
                     </div>
 
@@ -2965,7 +2967,8 @@
                 doc.setFont("Helvetica", "italic");
                 doc.setFontSize(8);
                 doc.setTextColor(148, 163, 184);
-                doc.text("Thank you for your business. Generated automatically.", 105, 280, { align: "center" });
+                doc.text("E. & O.E. | Subject to Kota, Rajasthan Jurisdiction Only.", 105, 275, { align: "center" });
+                doc.text("Thank You for Your Business!", 105, 280, { align: "center" });
 
                 doc.save("Invoice_" + bill.invoiceNo + ".pdf");
                 showToast("PDF downloaded.", "success");
