@@ -2198,14 +2198,10 @@
             document.getElementById('invoiceNo').readOnly = true;
             
             // Format dates
-            if (bill.createdAt) {
-                const bDate = new Date(bill.createdAt);
-                if (!isNaN(bDate.getTime())) {
-                    const offset = bDate.getTimezoneOffset() * 60000;
-                    const formatted = (new Date(bDate - offset)).toISOString().slice(0, 16);
-                    document.getElementById('invoiceDate').value = formatted;
-                }
-            }
+            const bDate = new Date(bill.createdAt);
+            const offset = bDate.getTimezoneOffset() * 60000;
+            const formatted = (new Date(bDate - offset)).toISOString().slice(0, 16);
+            document.getElementById('invoiceDate').value = formatted;
 
             document.getElementById('gstType').value = bill.gstType || 'non-gst';
             toggleGstSupport();
@@ -2218,9 +2214,8 @@
             const tbody = document.getElementById('line-items-body');
             tbody.innerHTML = "";
             
-            const itemsList = bill.items ? (Array.isArray(bill.items) ? bill.items : Object.values(bill.items)) : [];
-            if (itemsList.length > 0) {
-                itemsList.forEach(item => {
+            if (bill.items && bill.items.length > 0) {
+                bill.items.forEach(item => {
                     addInvoiceItemRow(item.productName, item.quantity, item.rate, item.date || bill.createdAt);
                 });
             } else {
@@ -2237,15 +2232,8 @@
             const today = new Date().toLocaleDateString('en-CA');
             if (bill.payments && Array.isArray(bill.payments)) {
                 activePayments = JSON.parse(JSON.stringify(bill.payments));
-            } else if (bill.payments && typeof bill.payments === 'object') {
-                activePayments = Object.values(bill.payments);
             } else {
-                let fallbackDate = today;
-                if (bill.paymentTimestamp) {
-                    fallbackDate = typeof bill.paymentTimestamp === 'string' ? bill.paymentTimestamp.split('T')[0] : new Date(bill.paymentTimestamp).toISOString().split('T')[0];
-                } else if (bill.createdAt) {
-                    fallbackDate = typeof bill.createdAt === 'string' ? bill.createdAt.split('T')[0] : new Date(bill.createdAt).toISOString().split('T')[0];
-                }
+                const fallbackDate = bill.paymentTimestamp ? bill.paymentTimestamp.split('T')[0] : (bill.createdAt ? bill.createdAt.split('T')[0] : today);
                 activePayments = [{ amount: bill.amountPaid || 0, date: fallbackDate }];
             }
             renderPaymentDeposits();
@@ -2971,7 +2959,7 @@
             const endDateVal = document.getElementById('ledgerEndDate').value;
 
             // Sort bills chronologically newest first using robust comparison helper
-            const customerBills = Object.entries(allBills).filter(([id, b]) => b.customerPhone === phone).map(([id, b]) => ({ id, ...b })).sort(compareBillsDescending);
+            const customerBills = Object.values(allBills).filter(b => b.customerPhone === phone).sort(compareBillsDescending);
 
             const matches = [];
             const now = new Date();
