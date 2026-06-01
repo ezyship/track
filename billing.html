@@ -336,19 +336,29 @@
             padding: 8px 12px;
             border-bottom: 1px solid var(--border);
         }
-
         .items-table tr:last-child td {
             border-bottom: none;
         }
 
+        /* Remove Spinners for number inputs */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
         .items-table input {
             width: 100%;
-            background: transparent;
-            border: none;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
             color: white;
             outline: none;
-            padding: 4px;
-            font-size: 0.9rem;
+            padding: 10px 8px;
+            font-size: 1.05rem;
         }
 
         .items-table input[type="date"] {
@@ -357,16 +367,21 @@
 
         .items-table input:focus {
             background: rgba(255,255,255,0.05);
-            border-radius: 4px;
+            border-color: var(--primary);
         }
 
         .items-table select {
             width: 100%;
-            background: transparent;
-            border: none;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
             color: white;
             outline: none;
-            padding: 4px;
+            padding: 10px 8px;
+            font-size: 1.05rem;
+        }
+        .items-table select option {
+            background: var(--bg);
         }
 
         .btn-remove-row {

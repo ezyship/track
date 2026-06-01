@@ -358,13 +358,23 @@
             vertical-align: middle;
         }
 
+        /* Remove Spinners for number inputs */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
         .items-table input, .items-table select {
             background: rgba(0,0,0,0.25);
             border: 1px solid var(--border);
-            padding: 6px 10px;
+            padding: 10px 10px;
             border-radius: 6px;
             color: white;
-            font-size: 0.85rem;
+            font-size: 1.05rem;
             width: 100%;
             outline: none;
         }
