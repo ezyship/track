@@ -2069,7 +2069,11 @@
             // Financials
             document.getElementById('invoiceNo').value = bill.invoiceNo || "";
             if (bill.createdAt) {
-                document.getElementById('invoiceDate').value = bill.createdAt.slice(0, 16);
+                if (typeof bill.createdAt === 'string') {
+                    document.getElementById('invoiceDate').value = bill.createdAt.slice(0, 16);
+                } else if (typeof bill.createdAt === 'number') {
+                    document.getElementById('invoiceDate').value = new Date(bill.createdAt).toISOString().slice(0, 16);
+                }
             }
 
             document.getElementById('extraCharges').value = bill.extraCharges || "0";
@@ -2082,8 +2086,15 @@
             const today = new Date().toLocaleDateString('en-CA');
             if (bill.payments && Array.isArray(bill.payments)) {
                 activePayments = JSON.parse(JSON.stringify(bill.payments));
+            } else if (bill.payments && typeof bill.payments === 'object') {
+                activePayments = Object.values(bill.payments);
             } else {
-                const fallbackDate = bill.paymentTimestamp ? bill.paymentTimestamp.split('T')[0] : (bill.createdAt ? bill.createdAt.split('T')[0] : today);
+                let fallbackDate = today;
+                if (bill.paymentTimestamp) {
+                    fallbackDate = typeof bill.paymentTimestamp === 'string' ? bill.paymentTimestamp.split('T')[0] : new Date(bill.paymentTimestamp).toISOString().split('T')[0];
+                } else if (bill.createdAt) {
+                    fallbackDate = typeof bill.createdAt === 'string' ? bill.createdAt.split('T')[0] : new Date(bill.createdAt).toISOString().split('T')[0];
+                }
                 activePayments = [{ amount: bill.amountPaid || 0, date: fallbackDate }];
             }
             renderPaymentDeposits();
@@ -2092,8 +2103,9 @@
             const tbody = document.getElementById('line-items-body');
             tbody.innerHTML = "";
             
-            if (bill.items && bill.items.length > 0) {
-                bill.items.forEach(itm => {
+            const itemsList = bill.items ? (Array.isArray(bill.items) ? bill.items : Object.values(bill.items)) : [];
+            if (itemsList.length > 0) {
+                itemsList.forEach(itm => {
                     addInvoiceItemRow(itm.productName, itm.hsn, itm.quantity, itm.rate, itm.unit, itm.gstRate);
                 });
             } else {

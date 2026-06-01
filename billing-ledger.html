@@ -2183,7 +2183,7 @@
 
         // --- Edit invoice mode loader ---
         function loadBillForEditing(billId) {
-            window.location.href = `billing.html?editbill=${billId}`;
+            window.location.href = `billing.html?editbill=${encodeURIComponent(billId)}`;
         }
         function _unused_old_loadBillForEditing(billId) {
             const bill = allBills[billId];

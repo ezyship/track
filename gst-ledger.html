@@ -1839,7 +1839,7 @@
 
         // Load specific invoice into editor fields
         function loadBillForEditing(billId) {
-            window.location.href = `gst-billing.html?editbill=${billId}`;
+            window.location.href = `gst-billing.html?editbill=${encodeURIComponent(billId)}`;
         }
         function _unused_old_loadBillForEditing(billId) {
             const bill = allBills[billId];
