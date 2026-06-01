@@ -745,7 +745,8 @@
                     </div>
                     <div class="form-group">
                         <label for="buyerName">Buyer / Customer Name</label>
-                        <input type="text" id="buyerName" placeholder="Enter buyer business/name">
+                        <input type="text" id="buyerName" placeholder="Enter buyer business/name" oninput="handleBuyerNameInput(this)" autocomplete="off">
+                        <div id="name-suggestions" class="suggestions-box"></div>
                     </div>
                 </div>
 
@@ -1423,9 +1424,58 @@
 
         document.addEventListener('click', e => {
             if (e.target.id !== 'buyerPhone') {
-                document.getElementById('phone-suggestions').style.display = 'none';
+                const ps = document.getElementById('phone-suggestions');
+                if(ps) ps.style.display = 'none';
+            }
+            if (e.target.id !== 'buyerName') {
+                const ns = document.getElementById('name-suggestions');
+                if(ns) ns.style.display = 'none';
             }
         });
+
+        function handleBuyerNameInput(input) {
+            const val = input.value.trim().toLowerCase();
+            const suggestions = document.getElementById('name-suggestions');
+            suggestions.innerHTML = '';
+            
+            if (val.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            const matches = Object.entries(allCustomers).filter(([phone, c]) => 
+                (c.name && c.name.toLowerCase().includes(val)) || phone.includes(val)
+            );
+            
+            if (matches.length === 0) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            matches.forEach(([phone, c]) => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `<strong>${c.name || 'No Name'}</strong><span>?? ${phone}</span>`;
+                div.onclick = function() {
+                    document.getElementById('buyerPhone').value = phone;
+                    document.getElementById('buyerName').value = c.name || '';
+                    document.getElementById('buyerAddress').value = c.address || '';
+                    document.getElementById('buyerGst').value = c.gst || '';
+                    if (c.gst && c.gst.length >= 2) {
+                        const code = c.gst.substring(0, 2);
+                        const match = IndianStates.find(st => st.code === code);
+                        if (match) {
+                            document.getElementById('buyerState').value = match.name;
+                            document.getElementById('buyerStateCode').value = match.code;
+                        }
+                    }
+                    suggestions.style.display = 'none';
+                    checkForPendingGstBill(phone);
+                };
+                suggestions.appendChild(div);
+            });
+            suggestions.style.display = 'block';
+        }
 
         // Load pending invoice logic
         function checkForPendingGstBill(phone) {
