@@ -2198,10 +2198,14 @@
             document.getElementById('invoiceNo').readOnly = true;
             
             // Format dates
-            const bDate = new Date(bill.createdAt);
-            const offset = bDate.getTimezoneOffset() * 60000;
-            const formatted = (new Date(bDate - offset)).toISOString().slice(0, 16);
-            document.getElementById('invoiceDate').value = formatted;
+            if (bill.createdAt) {
+                const bDate = new Date(bill.createdAt);
+                if (!isNaN(bDate.getTime())) {
+                    const offset = bDate.getTimezoneOffset() * 60000;
+                    const formatted = (new Date(bDate - offset)).toISOString().slice(0, 16);
+                    document.getElementById('invoiceDate').value = formatted;
+                }
+            }
 
             document.getElementById('gstType').value = bill.gstType || 'non-gst';
             toggleGstSupport();
@@ -2959,7 +2963,7 @@
             const endDateVal = document.getElementById('ledgerEndDate').value;
 
             // Sort bills chronologically newest first using robust comparison helper
-            const customerBills = Object.values(allBills).filter(b => b.customerPhone === phone).sort(compareBillsDescending);
+            const customerBills = Object.entries(allBills).filter(([id, b]) => b.customerPhone === phone).map(([id, b]) => ({ id, ...b })).sort(compareBillsDescending);
 
             const matches = [];
             const now = new Date();

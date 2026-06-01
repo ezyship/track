@@ -2962,7 +2962,7 @@
             const endDateVal = document.getElementById('ledgerEndDate').value;
 
             // Sort bills chronologically newest first using robust comparison helper
-            const customerBills = Object.values(allBills).filter(b => b.customerPhone === phone).sort(compareBillsDescending);
+            const customerBills = Object.entries(allBills).filter(([id, b]) => b.customerPhone === phone).map(([id, b]) => ({ id, ...b })).sort(compareBillsDescending);
 
             const matches = [];
             const now = new Date();

@@ -1813,6 +1813,7 @@
             const totalAmountPaid = activePayments.reduce((sum, p) => sum + p.amount, 0);
             const cappedAmountPaid = totalAmountPaid > grandTotal ? grandTotal : totalAmountPaid;
 
+            const status = document.getElementById('paymentStatus').value;
             let resolvedStatus = status;
             if (status !== 'cancelled') {
                 if (cappedAmountPaid === 0) {
