@@ -113,29 +113,6 @@
         .header p {
             color: var(--text-muted);
             font-size: 1rem;
-            margin-bottom: 15px;
-        }
-
-        .ledger-btn {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 50px;
-            font-size: 1.05rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
-
-        .ledger-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
         }
 
         /* Analytics Section */
@@ -188,20 +165,19 @@
         .analytics-card.accent-warning { border-left: 4px solid var(--warning); }
         .analytics-card.accent-purple { border-left: 4px solid #c084fc; }
 
-        /* Workspace Grid Layout */
+        /* Workspace Layout */
         .dashboard-container {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
             gap: 20px;
             width: 100%;
-            max-width: 1000px;
-            align-items: center;
-            margin: 0 auto 50px auto;
+            max-width: 1400px;
+            align-items: start;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1100px) {
             .dashboard-container {
-                padding: 0 10px;
+                grid-template-columns: 1fr;
             }
         }
 
@@ -342,7 +318,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
-            min-width: 700px;
+            min-width: 500px;
         }
 
         .items-table th {
@@ -373,17 +349,6 @@
             outline: none;
             padding: 4px;
             font-size: 0.9rem;
-            box-sizing: border-box;
-        }
-
-        /* Remove number input spinners */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
         }
 
         .items-table input[type="date"] {
@@ -864,7 +829,6 @@
     <div class="header">
         <h1>🧾 Billing & Ledger Portal</h1>
         <p>Manage unlimited customer bills, check payment ledgers, print address labels & export monthly spreadsheets.</p>
-        <a href="billing-ledger.html" class="ledger-btn">📊 View Billing Ledger</a>
     </div>
 
     <!-- Real-time Analytics Dashboard -->
@@ -910,8 +874,8 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="customerPhone">Phone Number / Name Search</label>
-                        <input type="text" id="customerPhone" placeholder="Enter 10-digit number or name" onkeyup="handlePhoneInput(this)" autocomplete="off">
+                        <label for="customerPhone">Phone Number</label>
+                        <input type="text" id="customerPhone" placeholder="Enter 10-digit number" onkeyup="handlePhoneInput(this)" autocomplete="off">
                         <div id="phone-suggestions" class="suggestions-box"></div>
                     </div>
                     <div class="form-group">
@@ -983,11 +947,11 @@
                 <table class="items-table" id="items-table">
                     <thead>
                         <tr>
-                            <th style="width: 15%;">Date</th>
+                            <th style="width: 20%;">Date</th>
                             <th style="width: 35%;">Product Details</th>
                             <th style="width: 12%; text-align: right;">Qty</th>
-                            <th style="width: 18%; text-align: right;">Rate (₹)</th>
-                            <th style="width: 15%; text-align: right;">Total (₹)</th>
+                            <th style="width: 15%; text-align: right;">Rate (₹)</th>
+                            <th style="width: 13%; text-align: right;">Total (₹)</th>
                             <th style="width: 5%; text-align: center;"></th>
                         </tr>
                     </thead>
@@ -1061,6 +1025,184 @@
         </div>
 
         <!-- Invoices List & Customer Ledger database -->
+        <div class="glass-card">
+            <div class="card-header">
+                <h2>📋 Invoices Database</h2>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-success btn-sm" onclick="exportFilteredBillsExcel()">🟢 Export Filtered Excel</button>
+                    <button class="btn btn-s btn-sm" onclick="showUtilityModal()">📂 Export / Tools</button>
+                </div>
+            </div>
+
+            <!-- Smart Filter controls -->
+            <div class="filters-panel">
+                <div class="filters-row" style="margin-bottom: 10px;">
+                    <div class="filter-item" style="flex: 2;">
+                        <label for="filterSearch">🔍 Search Invoices</label>
+                        <input type="text" id="filterSearch" placeholder="Search customer, phone, or invoice..." onkeyup="filterAndLoadBillsTable()">
+                    </div>
+                </div>
+                <div class="filters-row">
+                    <div class="filter-item">
+                        <label for="filterDateRange">📅 Date Filter</label>
+                        <select id="filterDateRange" onchange="handleDateFilterChange()">
+                            <option value="all">All Invoices</option>
+                            <option value="today">Today</option>
+                            <option value="month">Current Month</option>
+                            <option value="last-month">Last Month</option>
+                            <option value="financial-year">Financial Year</option>
+                            <option value="custom">Custom Date Range</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filterStatus">🏷️ Status</label>
+                        <select id="filterStatus" onchange="filterAndLoadBillsTable()">
+                            <option value="all">All Statuses</option>
+                            <option value="paid">Paid</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filters-row" id="custom-date-inputs" style="display: none; margin-top: 10px;">
+                    <div class="filter-item">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" onchange="filterAndLoadBillsTable()">
+                    </div>
+                    <div class="filter-item">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" onchange="filterAndLoadBillsTable()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices table -->
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Inv. Code</th>
+                            <th>Date</th>
+                            <th>Customer details</th>
+                            <th>Grand Total</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bills-table-body">
+                        <!-- Content loaded dynamically from Firebase -->
+                    </tbody>
+                </table>
+                <div id="table-loading-spinner" style="text-align: center; padding: 30px; display: none;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 8px; color: var(--text-muted);">Fetching transactions...</p>
+                </div>
+                <div id="table-empty-state" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    📭 No invoices match the active filters.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Ledger Detail View Modal -->
+    <div class="modal" id="customerLedgerModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>👥 Customer Ledger & Billing History</h3>
+                <button class="modal-close" onclick="closeModal('customerLedgerModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="ledger-stats">
+                    <div class="ledger-stat-card">
+                        <label>Customer Name</label>
+                        <span id="ledger-customer-name">---</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Phone Number</label>
+                        <span id="ledger-customer-phone">---</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Saved GSTIN</label>
+                        <span id="ledger-customer-gst">---</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Total Business Done</label>
+                        <span id="ledger-customer-total" style="color:var(--success)">₹0.00</span>
+                    </div>
+                    <div class="ledger-stat-card">
+                        <label>Outstanding Balance</label>
+                        <span id="ledger-customer-pending" style="color:var(--danger)">₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Ledger Dynamic Filter Panel -->
+                <div class="filters-panel" style="margin-bottom: 15px; padding: 12px; background: rgba(15, 23, 42, 0.4);">
+                    <div class="filters-row">
+                        <div class="filter-item">
+                            <label for="ledgerFilterDateRange">📅 Date Filter</label>
+                            <select id="ledgerFilterDateRange" onchange="handleLedgerDateFilterChange()">
+                                <option value="all">All Invoices</option>
+                                <option value="today">Today</option>
+                                <option value="month">Current Month</option>
+                                <option value="last-month">Last Month</option>
+                                <option value="financial-year">Financial Year</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="ledgerFilterStatus">🏷️ Status</label>
+                            <select id="ledgerFilterStatus" onchange="filterAndLoadLedgerTable()">
+                                <option value="all">All Statuses</option>
+                                <option value="paid">Paid</option>
+                                <option value="unpaid">Unpaid</option>
+                                <option value="partial">Partial Paid</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filters-row" id="ledger-custom-date-inputs" style="display: none; margin-top: 10px;">
+                        <div class="filter-item">
+                            <label for="ledgerStartDate">Start Date</label>
+                            <input type="date" id="ledgerStartDate" onchange="filterAndLoadLedgerTable()">
+                        </div>
+                        <div class="filter-item">
+                            <label for="ledgerEndDate">End Date</label>
+                            <input type="date" id="ledgerEndDate" onchange="filterAndLoadLedgerTable()">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 12px; color: var(--primary);">📝 Transaction Logs</div>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice No</th>
+                                <th>Date</th>
+                                <th>Billing Type</th>
+                                <th>Grand Total</th>
+                                <th>Amt Paid</th>
+                                <th>Amt Pending</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-rows-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="ledgerDeleteBtn" onclick="deleteCustomerAccount()" style="margin-right: auto; background: var(--danger);">🗑️ Delete Customer</button>
+                <button class="btn btn-success" onclick="viewLedgerCustomerInExcel()">📊 View in Excel</button>
+                <button class="btn btn-success" onclick="exportCustomerLedgerExcel()">📥 Export Ledger Excel</button>
+                <button class="btn btn-s" onclick="closeModal('customerLedgerModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Database Utilities Modal -->
     <div class="modal" id="utilitiesModal">
         <div class="modal-content" style="max-width: 600px;">
@@ -1799,7 +1941,8 @@
 
         // --- Customer Autocomplete Suggestions ---
         function handlePhoneInput(input) {
-            const val = input.value;
+            const val = input.value.replace(/\D/g, '');
+            input.value = val;
             
             const suggestions = document.getElementById('phone-suggestions');
             suggestions.innerHTML = '';
@@ -1897,8 +2040,8 @@
             const paymentStatus = document.getElementById('paymentStatus').value;
             const notes = document.getElementById('invoiceNotes').value.trim();
 
-            if (!phone || !name || !phone.match(/^\d+$/) || phone.length !== 10) {
-                showToast("Please provide Customer Name and a valid 10-digit Phone Number.", "error");
+            if (!phone || !name) {
+                showToast("Please provide Customer Name and Phone Number.", "error");
                 return;
             }
 

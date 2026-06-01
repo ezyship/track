@@ -108,29 +108,6 @@
         .header p {
             color: var(--text-muted);
             font-size: 1rem;
-            margin-bottom: 15px;
-        }
-
-        .ledger-btn {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 50px;
-            font-size: 1.05rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
-
-        .ledger-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
         }
 
         /* Analytics Section */
@@ -184,18 +161,18 @@
 
         /* Workspace Grid Layout */
         .dashboard-container {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
             gap: 20px;
             width: 100%;
-            max-width: 1000px;
-            align-items: center;
-            margin: 0 auto 50px auto;
+            max-width: 1400px;
+            align-items: start;
+            margin-bottom: 50px;
         }
 
         @media (max-width: 1200px) {
             .dashboard-container {
-                padding: 0 10px;
+                grid-template-columns: 1fr;
             }
         }
 
@@ -359,7 +336,6 @@
 
         .items-table {
             width: 100%;
-            min-width: 850px;
             border-collapse: collapse;
             text-align: left;
             font-size: 0.9rem;
@@ -391,22 +367,6 @@
             font-size: 0.85rem;
             width: 100%;
             outline: none;
-            box-sizing: border-box;
-        }
-
-        .items-table select option {
-            background-color: #0f172a;
-            color: #ffffff;
-        }
-
-        /* Remove number input spinners */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
         }
 
         .items-table input:focus, .items-table select:focus {
@@ -711,8 +671,8 @@
 
     <!-- Header bar -->
     <div class="header">
-        <h1>🧾 GST Billing Portal</h1>
-        <p>Create & print B2B/B2C GST Invoices efficiently.</p>
+        <h1>🧾 Dedicated GST Billing Portal</h1>
+        <p>Generate, edit, and print official Tally Prime style Tax Invoices with dynamic CGST/SGST/IGST breakdown</p>
     </div>
 
     <!-- Navigation links -->
@@ -768,8 +728,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="buyerPhone">Buyer Phone Number / Name Search</label>
-                        <input type="text" id="buyerPhone" placeholder="Enter 10-digit number or name" onkeyup="handleBuyerPhoneInput(this)" autocomplete="off">
+                        <label for="buyerPhone">Buyer Phone Number</label>
+                        <input type="text" id="buyerPhone" placeholder="Enter 10-digit number" onkeyup="handleBuyerPhoneInput(this)" autocomplete="off">
                         <div id="phone-suggestions" class="suggestions-box"></div>
                     </div>
                     <div class="form-group">
@@ -924,15 +884,15 @@
                 <table class="items-table" id="items-table">
                     <thead>
                         <tr>
-                            <th style="width: 4%; text-align: center;">SNo</th>
-                            <th style="width: 28%;">Description of Goods</th>
-                            <th style="width: 10%;">HSN/SAC</th>
+                            <th style="width: 5%; text-align: center;">SNo</th>
+                            <th style="width: 32%;">Description of Goods</th>
+                            <th style="width: 13%;">HSN/SAC</th>
                             <th style="width: 10%; text-align: right;">Qty</th>
                             <th style="width: 10%;">Unit</th>
-                            <th style="width: 14%; text-align: right;">Rate (₹)</th>
+                            <th style="width: 12%; text-align: right;">Rate (₹)</th>
                             <th style="width: 10%;">GST%</th>
-                            <th style="width: 10%; text-align: right;">Taxable (₹)</th>
-                            <th style="width: 4%; text-align: center;"></th>
+                            <th style="width: 13%; text-align: right;">Taxable (₹)</th>
+                            <th style="width: 5%; text-align: center;"></th>
                         </tr>
                     </thead>
                     <tbody id="line-items-body">
@@ -1009,7 +969,86 @@
             </div>
         </div>
 
-        <!-- Ledger moved to gst-ledger.html -->
+        <!-- Invoice list / history database viewer (Right side) -->
+        <div class="glass-card">
+            <div class="card-header">
+                <h2>📊 GST Invoices Ledger</h2>
+                <div>
+                    <button class="btn btn-success btn-sm" onclick="exportGstBillsExcel()">🟢 Export Excel</button>
+                </div>
+            </div>
+
+            <!-- Filter criteria -->
+            <div class="filters-panel">
+                <div class="filters-row" style="margin-bottom: 10px;">
+                    <div class="filter-item" style="flex: 2;">
+                        <label for="filterSearch">🔍 Search Invoices</label>
+                        <input type="text" id="filterSearch" placeholder="Search customer, phone, GSTIN, invoice..." onkeyup="filterAndLoadBillsTable()">
+                    </div>
+                </div>
+                <div class="filters-row">
+                    <div class="filter-item">
+                        <label for="filterDateRange">📅 Date Filter</label>
+                        <select id="filterDateRange" onchange="handleDateFilterChange()">
+                            <option value="all">All Invoices</option>
+                            <option value="today">Today</option>
+                            <option value="month">Current Month</option>
+                            <option value="last-month">Last Month</option>
+                            <option value="financial-year">Financial Year</option>
+                            <option value="custom">Custom Date Range</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filterStatus">🏷️ Payment Status</label>
+                        <select id="filterStatus" onchange="filterAndLoadBillsTable()">
+                            <option value="all">All Statuses</option>
+                            <option value="paid">Paid</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filters-row" id="custom-date-inputs" style="display: none; margin-top: 10px;">
+                    <div class="filter-item">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" onchange="filterAndLoadBillsTable()">
+                    </div>
+                    <div class="filter-item">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" onchange="filterAndLoadBillsTable()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ledger Table -->
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Inv. Code</th>
+                            <th>Date</th>
+                            <th>Buyer Details</th>
+                            <th>Total (₹)</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bills-table-body">
+                        <!-- Database content -->
+                    </tbody>
+                </table>
+                <div id="table-loading-spinner" style="text-align: center; padding: 30px; display: none;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 8px; color: var(--text-muted);">Fetching transactions...</p>
+                </div>
+                <div id="table-empty-state" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    📭 No GST invoices match criteria.
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     <!-- Seller profile configurations modal -->
     <div class="modal" id="sellerSettingsModal">
@@ -1121,13 +1160,13 @@
         let customersLoaded = false;
         let activePayments = [];
 
-        // Default Seller Profile Config (backed by firebase Settings)
+        // Default Seller Profile Config (backed by firebase Settings, configured dynamically via appConfig.gstProfile)
         let sellerConfig = {
-            name: "Digital Dukan",
-            gstin: "08AOVPG0169D1ZV",
-            address: "Bheru Gali, Rampura Bazar, Kota, Rajasthan - 324006",
-            state: "Rajasthan",
-            stateCode: "08",
+            name: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.name) ? appConfig.gstProfile.name : "Digital Dukan",
+            gstin: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.gstin) ? appConfig.gstProfile.gstin : "08AOVPG0169D1ZV",
+            address: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.address) ? appConfig.gstProfile.address : "Bheru Gali, Rampura Bazar, Kota, Rajasthan - 324006",
+            state: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.state) ? appConfig.gstProfile.state : "Rajasthan",
+            stateCode: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.stateCode) ? appConfig.gstProfile.stateCode : "08",
             gstPrefix: "DD/2026-27/",
             gstNextNo: 1
         };
@@ -1273,7 +1312,7 @@
                     let data = snap.val() || {};
                     let updated = false;
                     if (data.name === "Zahera Silk Banaras") {
-                        data.name = "Digital Dukan";
+                        data.name = (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.name) ? appConfig.gstProfile.name : "Digital Dukan";
                         updated = true;
                     }
                     if (data.gstPrefix === "ZS/2026-27/") {
@@ -1321,12 +1360,13 @@
 
         // Customer Quick Search autofill
         function handleBuyerPhoneInput(input) {
-            const val = input.value;
+            const val = input.value.replace(/\D/g, '');
+            input.value = val;
 
             const suggestions = document.getElementById('phone-suggestions');
             suggestions.innerHTML = '';
 
-            if (val.match(/^\d{10}$/)) {
+            if (val.length === 10) {
                 checkForPendingGstBill(val);
             }
 
@@ -1491,7 +1531,7 @@
             // Collect GST summaries by tier
             const sellerStateCode = sellerConfig.stateCode || "08";
             const buyerStateCode = document.getElementById('buyerStateCode').value || "08";
-            const isLocal = false; // Always use IGST as requested by user
+            const isLocal = (sellerStateCode === buyerStateCode);
 
             // Group tax values by rate tier
             const taxTiers = {};
@@ -1758,7 +1798,7 @@
                 termsOfDelivery: document.getElementById('termsOfDelivery').value.trim()
             };
 
-            if (!phone || !phone.match(/^\d+$/) || phone.length !== 10) {
+            if (!phone || phone.length !== 10) {
                 showToast("Please provide a valid 10-digit phone number.", "error");
                 return;
             }
@@ -1868,7 +1908,7 @@
                 payments: activePayments,
                 items: items,
                 subtotal: subtotal,
-                gstType: 'igst', // Force IGST
+                gstType: (sellerConfig.stateCode === stateCode) ? 'cgst-sgst' : 'igst',
                 gstPercent: parseFloat(effectiveGstPct.toFixed(2)),
                 gstAmount: parseFloat(gstTotalAmt.toFixed(2)),
                 extraCharges: parseFloat(document.getElementById('extraCharges').value) || 0,
@@ -2252,9 +2292,10 @@
                 if (b.isGstBill === true && b.status !== 'cancelled') {
                     totalGstSales += parseFloat(b.grandTotal) || 0;
                     
+                    const localBuyer = (b.buyerStateCode === b.seller.stateCode);
                     const gstAmount = parseFloat(b.gstAmount) || 0;
 
-                    if (b.gstType === 'cgst-sgst') {
+                    if (localBuyer) {
                         cgstAmt += gstAmount / 2;
                         sgstAmt += gstAmount / 2;
                     } else {
@@ -2401,11 +2442,11 @@
             }
 
             const seller = bill.seller || {
-                name: "Digital Dukan",
-                gstin: "08AOVPG0169D1ZV",
-                address: "Bheru Gali, Rampura Bazar, Kota, Rajasthan - 324006",
-                state: "Rajasthan",
-                stateCode: "08"
+                name: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.name) ? appConfig.gstProfile.name : "Digital Dukan",
+                gstin: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.gstin) ? appConfig.gstProfile.gstin : "08AOVPG0169D1ZV",
+                address: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.address) ? appConfig.gstProfile.address : "Bheru Gali, Rampura Bazar, Kota, Rajasthan - 324006",
+                state: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.state) ? appConfig.gstProfile.state : "Rajasthan",
+                stateCode: (typeof appConfig !== 'undefined' && appConfig.gstProfile && appConfig.gstProfile.stateCode) ? appConfig.gstProfile.stateCode : "08"
             };
 
             const consignee = bill.consignee || {
